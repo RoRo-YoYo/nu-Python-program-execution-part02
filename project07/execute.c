@@ -93,15 +93,53 @@ static bool execute_function_call(struct STMT* stmt, struct RAM* memory) {
   }
 }
 
-//
-// Retrieve the appropriate integer value given LHS or RHS. Account for if the given variable don't exist
-//
-static int retrived_value(struct UNARY_EXPR* unary_expr,  struct RAM* memory, bool* element_exist){
+enum OPERAND_VALUE_TYPES
+{
+  Operand_Types_INT = 0,
+  Operand_Types_REAL,
+  Operand_Types_STR,
+  Operand_Types_INVALID,
+};
 
+struct Operand
+{
+  int operand_Types; 
+
+  union
+  {
+    int    i; // INT, Not Exist -1
+    double d; // REAL
+    char*  s; // STR 
+  } operand_value;
+
+  bool exist;
+};
+
+//
+// Retrieve the appropriate value given LHS or RHS. Account for if the given variable don't exist
+//
+struct Operand retrived_value(struct UNARY_EXPR* unary_expr, struct RAM* memory) {
+  struct Operand Operand;
   if (unary_expr->element->element_type == ELEMENT_INT_LITERAL) {
     int number = atoi(unary_expr->element->element_value); // Access integer string and turn it into integer
-    *element_exist = true;
-    return number;
+    Operand.exist = true;
+    Operand.operand_Types = Operand_Types_INT;
+    Operand.operand_value.i = number;
+    return Operand;
+  }
+  else if (unary_expr->element->element_type == ELEMENT_REAL_LITERAL) {
+    int number = atof(unary_expr->element->element_value); // Access real string and turn it into real
+    Operand.exist = true;
+    Operand.operand_Types = Operand_Types_REAL;
+    Operand.operand_value.d = number;
+    return Operand;
+  }
+  else if (unary_expr->element->element_type == ELEMENT_STR_LITERAL) {
+    char* string_value = unary_expr->element->element_value; // Access string
+    Operand.exist = true;
+    Operand.operand_Types = Operand_Types_STR;
+    Operand.operand_value.s = string_value;
+    return Operand;
   }
   else {
     // else, it's variable instead
@@ -111,13 +149,29 @@ static int retrived_value(struct UNARY_EXPR* unary_expr,  struct RAM* memory, bo
 
       if (exist != -1) {
         struct RAM_VALUE* COPY_VALUE = ram_read_cell_by_name(memory,name);
-        *element_exist = true;
-        return COPY_VALUE->types.i; }
-      else {
-        *element_exist = false;
-        return -1; // Just to return some int
-      }  
+
+        if (COPY_VALUE->value_type == RAM_TYPE_INT) {
+          Operand.operand_Types = Operand_Types_INT;
+          Operand.operand_value.i = COPY_VALUE->types.i;
+          return Operand;
+        }
+        else if (COPY_VALUE->value_type == RAM_TYPE_REAL) {
+          Operand.operand_Types = Operand_Types_REAL;
+          Operand.operand_value.d = COPY_VALUE->types.d;
+          return Operand;
+        }
+        else if (COPY_VALUE->value_type == RAM_TYPE_STR) {
+          Operand.operand_Types = Operand_Types_STR;
+          Operand.operand_value.s = COPY_VALUE->types.s;
+          return Operand;
+        }
       }
+    // Then, it don't exist
+    Operand.exist = false;
+    Operand.operand_Types = Operand_Types_INVALID;
+    Operand.operand_value.i = -1;
+    return Operand; 
+    }
   }
 
 //
@@ -125,7 +179,13 @@ static int retrived_value(struct UNARY_EXPR* unary_expr,  struct RAM* memory, bo
 //
 
 struct Results {
-  int operation_result;
+    union
+  {
+    int    i; // INT, Not Exist -1
+    double d; // REAL
+    char*  s; // STR 
+  } operation_result;
+
   bool success;
 };
 
@@ -154,45 +214,39 @@ static struct Results return_results(struct STMT* stmt,struct EXPR* expr, int op
       return results;
     }  
 }
-
 //
-// Execute binary expression, used as a helper function for execute_assignment. Handles undefined variable and invalid operation, such as divide by 0 or mod by 0. Return struct
-// 
-
-static struct Results execute_binary_expression(struct EXPR* expr, struct RAM* memory,struct STMT* stmt) {
-  struct Results results;
-  bool element_exist_left = false;
-  bool element_exist_right = false;
-
+// Execute binary expression for integer. Used as a helper function for execute_binary_expression.
+//
+struct Results integer_binary_expression(struct STMT* stmt,struct EXPR* expr, int left_value, int right_value, bool element_exist_left,bool element_exist_right) {
+    struct Results results;
     if (expr->operator_type == OPERATOR_PLUS) {
-      int sum = retrived_value(expr->lhs,memory,&element_exist_left) + retrived_value(expr->rhs,memory,&element_exist_right);
-      return return_results(stmt, expr, sum, element_exist_left,element_exist_right);
+      int sum = left_value + right_value;
+      return return_results(stmt, expr, sum, element_exist_left, element_exist_right);
     }
 
     else if (expr->operator_type == OPERATOR_MINUS) {
-      int difference = retrived_value(expr->lhs,memory,&element_exist_left) - retrived_value(expr->rhs,memory,&element_exist_right);
+      int difference = left_value - right_value;
       results.operation_result = difference;
       return return_results(stmt, expr, difference, element_exist_left,element_exist_right);
-
     }
+
     else if (expr->operator_type ==  OPERATOR_ASTERISK) {
-      int product = retrived_value(expr->lhs,memory,&element_exist_left) * retrived_value(expr->rhs,memory,&element_exist_right);
+      int product = left_value * right_value;
       results.operation_result = product;
       return return_results(stmt, expr, product, element_exist_left,element_exist_right);
-
     }
+
     else if (expr->operator_type ==  OPERATOR_POWER) {
-      int power = pow(retrived_value(expr->lhs,memory,&element_exist_left),retrived_value(expr->rhs,memory,&element_exist_right));
+      int power = pow(left_value, right_value);
       results.operation_result = power;
        return return_results(stmt, expr, power, element_exist_left,element_exist_right);
-
     }
 
     else if (expr->operator_type ==  OPERATOR_MOD) {
-      if (retrived_value(expr->rhs,memory,&element_exist_right) != 0) { //if a valid denominator, continue
-        int remainder = retrived_value(expr->lhs,memory,&element_exist_left) % retrived_value(expr->rhs,memory,&element_exist_right);
+      if (right_value != 0) { //if a valid denominator, continue
+        int remainder = left_value % right_value;
         results.operation_result = remainder;
-       return return_results(stmt, expr, remainder, element_exist_left,element_exist_right);}
+        return return_results(stmt, expr, remainder, element_exist_left,element_exist_right);}
 
       else {
         printf("**SEMANTIC ERROR: mod by 0 (line %d)\n", stmt->line);
@@ -203,8 +257,8 @@ static struct Results execute_binary_expression(struct EXPR* expr, struct RAM* m
     }
 
     else if (expr->operator_type ==  OPERATOR_DIV) {
-      if (retrived_value(expr->rhs,memory,&element_exist_right) != 0) { //if a valid denominator, continue
-        int quotient = retrived_value(expr->lhs,memory,&element_exist_left) / retrived_value(expr->rhs,memory,&element_exist_right);
+      if (right_value  != 0) { //if a valid denominator, continue
+        int quotient = left_value /right_value ;
         results.operation_result = quotient;
        return return_results(stmt, expr, quotient, element_exist_left,element_exist_right);}
 
@@ -215,6 +269,104 @@ static struct Results execute_binary_expression(struct EXPR* expr, struct RAM* m
         return results;
       }  
     }
+  results.operation_result = 0;
+  results.success = false;
+  return results;
+}  
+
+//
+// Execute binary expression for integer. Used as a helper function for execute_binary_expression.
+//
+struct Results real_binary_expression(struct STMT* stmt,struct EXPR* expr, double left_value, double right_value, bool element_exist_left,bool element_exist_right) {
+    struct Results results;
+    if (expr->operator_type == OPERATOR_PLUS) {
+      printf("REAL ADDING OPERATION\n");
+      double sum = left_value + right_value;
+      return return_results(stmt, expr, sum, element_exist_left, element_exist_right);
+    }
+
+    else if (expr->operator_type == OPERATOR_MINUS) {
+      double difference = left_value - right_value;
+      results.operation_result = difference;
+      return return_results(stmt, expr, difference, element_exist_left,element_exist_right);
+    }
+
+    else if (expr->operator_type ==  OPERATOR_ASTERISK) {
+      double product = left_value * right_value;
+      results.operation_result = product;
+      return return_results(stmt, expr, product, element_exist_left,element_exist_right);
+    }
+
+    else if (expr->operator_type ==  OPERATOR_POWER) {
+      double power = pow(left_value, right_value);
+      results.operation_result = power;
+      return return_results(stmt, expr, power, element_exist_left,element_exist_right);
+    }
+
+    else if (expr->operator_type ==  OPERATOR_MOD) {
+      if (right_value != 0) { //if a valid denominator, continue
+        double remainder = fmod(left_value, right_value);
+        results.operation_result = remainder;
+        return return_results(stmt, expr, remainder, element_exist_left,element_exist_right);}
+
+      else {
+        printf("**SEMANTIC ERROR: mod by 0 (line %d)\n", stmt->line);
+        results.operation_result = 0;
+        results.success = false;
+        return results;
+      }  
+    }
+
+    else if (expr->operator_type ==  OPERATOR_DIV) {
+      if (right_value  != 0) { //if a valid denominator, continue
+        int quotient = left_value /right_value ;
+        results.operation_result = quotient;
+       return return_results(stmt, expr, quotient, element_exist_left,element_exist_right);}
+
+      else {
+        printf("**SEMANTIC ERROR: divide by 0 (line %d)\n", stmt->line);
+        results.operation_result = 0;
+        results.success = false;
+        return results;
+      }  
+    }
+  results.operation_result = 0;
+  results.success = false;
+  return results;
+}  
+
+//
+// Execute binary expression, used as a helper function for execute_assignment. Handles undefined variable and invalid operation, such as divide by 0 or mod by 0. Return struct
+// 
+
+static struct Results execute_binary_expression(struct EXPR* expr, struct RAM* memory,struct STMT* stmt) {
+  struct Results results;
+
+  struct Operand left =  retrived_value(expr->lhs,memory);
+  struct Operand right = retrived_value(expr->rhs,memory);
+  bool element_exist_left = left.exist;
+  bool element_exist_right = right.exist;
+
+  if (left.operand_Types == Operand_Types_INT && right.operand_Types == Operand_Types_INT) {
+    return integer_binary_expression(stmt, expr, left.operand_value.i, right.operand_value.i,element_exist_left,element_exist_right); // if both are integer, perform integer operation
+  }
+
+  else if (left.operand_Types == Operand_Types_REAL || right.operand_Types == Operand_Types_REAL) { // if either is a real number, then perform real operation
+    printf("REAL OPERATION\n");
+    if (left.operand_Types == Operand_Types_INT) { // if left is integer, access it and convert to real
+      double left_double = left.operand_value.i;
+      return real_binary_expression(stmt, expr, left_double, right.operand_value.d,element_exist_left,element_exist_right);
+    }
+    if (right.operand_Types == Operand_Types_INT) { // if right is integer, access it and convert to real
+      double right_double = right.operand_value.i;
+      return real_binary_expression(stmt, expr, left.operand_value.d, right_double,element_exist_left, element_exist_right);
+    }
+    else { // if both is real, then simply plug in
+    printf("BOTH REAL\n");
+    return real_binary_expression(stmt, expr, left.operand_value.d, right.operand_value.d,element_exist_left,element_exist_right);
+  }
+  }
+
   results.operation_result = 0;
   results.success = false;
   return results;
