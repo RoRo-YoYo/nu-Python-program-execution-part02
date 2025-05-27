@@ -427,7 +427,21 @@ struct Results string_binary_expression(struct STMT* stmt,struct EXPR* expr, cha
       results.operation_result.s = new_word; 
       results.result_types = Result_Types_STR;
       return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
-    }    
+    }   
+    if (expr->operator_type == OPERATOR_EQUAL) {
+      int string_comparison = strcmp(left_value,right_value);
+      if (string_comparison == 0) {
+        results.operation_result.i = 1; 
+        results.result_types = Result_Types_BOOL;
+        return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
+      }
+      else {
+        results.operation_result.i = 0; 
+        results.result_types = Result_Types_BOOL;
+        return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
+      }
+
+    }       
     else {
       printf("SEMANTIC ERROR: invalid operand types (line %d)\n",stmt->line);
       results.result_types = Result_Types_INVALID;
