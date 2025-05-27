@@ -173,19 +173,9 @@ struct Operand retrived_value(struct UNARY_EXPR* unary_expr, struct RAM* memory)
           char* copy_word = (char*) malloc(string_lengths * sizeof(char));
           strcpy(copy_word, COPY_VALUE->types.s); // copy 
 
-          // printf("ACCESSING VARIABLE STRING\n");
-          // printf("%s\n",  COPY_VALUE->types.s);
-          // int word_length = strlen(COPY_VALUE->types.s);
-          // printf("%d\n", word_length);
-
-          // printf("ACCESSING VARIABLE STRING\n");
-          // printf("%s\n",  copy_word);
-          // printf("%d\n", string_lengths);
-
           Operand.operand_Types = Operand_Types_STR;
           Operand.operand_value.s = copy_word;
 
-          // Operand.operand_value.s = COPY_VALUE->types.s;
           ram_free_value(COPY_VALUE);
           return Operand;
         }
@@ -213,6 +203,7 @@ enum RESULT_VALUE_TYPES
   Result_Types_INT = 0,
   Result_Types_REAL,
   Result_Types_STR,
+  Result_Types_BOOL,
   Result_Types_INVALID,
 };
 
@@ -318,6 +309,23 @@ struct Results integer_binary_expression(struct STMT* stmt,struct EXPR* expr, in
         return results;
       }  
     }
+
+    else if (expr->operator_type ==  OPERATOR_EQUAL) {
+     if (left_value == right_value) {
+        results.operation_result.i = 1;
+        results.success = true;
+        results.result_types = Result_Types_BOOL;
+        return results;
+
+     }
+     else {
+        results.operation_result.i = 0;
+        results.success = true;
+        results.result_types = Result_Types_BOOL;
+        return results;
+     }
+
+    }
   results.operation_result.i = 0;
   results.success = false;
   results.result_types = Result_Types_INVALID;
@@ -399,20 +407,15 @@ struct Results string_binary_expression(struct STMT* stmt,struct EXPR* expr, cha
       int string_lengths = strlen(left_value) +  strlen(right_value) + 1; // extra one for null zero
       char* new_word = (char*) malloc(string_lengths * sizeof(char));
 
-      // printf("%s\n", left_value);
-
       strcpy(new_word, left_value); // copy the first word into the new string array
       strcat(new_word, right_value); // Combine
-
-      // printf("%s\n", left_value);
-      // printf("%s\n", new_word);
 
       results.operation_result.s = new_word; 
       results.result_types = Result_Types_STR;
       return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
     }    
     else {
-      printf("SEMANTIC ERROR: invalid operand types (line %d)",stmt->line);
+      printf("SEMANTIC ERROR: invalid operand types (line %d)\n",stmt->line);
       results.result_types = Result_Types_INVALID;
       results.success = false;
       return results;
@@ -662,6 +665,10 @@ static bool execute_assignment(struct STMT* stmt, struct RAM* memory) {
           else if (results.result_types == Result_Types_STR) {
           value.value_type = RAM_TYPE_STR;  // Create value
           value.types.s = results.operation_result.s;
+        }
+        else if (results.result_types == Result_Types_BOOL) {
+          value.value_type = RAM_TYPE_BOOLEAN;  // Create value
+          value.types.i = results.operation_result.i;
         }
 
           if (stmt->types.assignment->isPtrDeref == true) {
