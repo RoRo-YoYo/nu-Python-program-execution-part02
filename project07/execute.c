@@ -325,6 +325,20 @@ struct Results integer_binary_expression(struct STMT* stmt,struct EXPR* expr, in
           return results;
       }
     }
+    else if (expr->operator_type ==  OPERATOR_NOT_EQUAL) {
+      if (left_value != right_value) {
+          results.operation_result.i = 1;
+          results.success = true;
+          results.result_types = Result_Types_BOOL;
+          return results;
+      }
+      else {
+          results.operation_result.i = 0;
+          results.success = true;
+          results.result_types = Result_Types_BOOL;
+          return results;
+      }
+    }    
   results.operation_result.i = 0;
   results.success = false;
   results.result_types = Result_Types_INVALID;
