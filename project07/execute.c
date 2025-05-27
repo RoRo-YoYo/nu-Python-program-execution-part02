@@ -245,7 +245,7 @@ static struct Results return_results(struct STMT* stmt,struct EXPR* expr, struct
     }  
 }
 //
-//
+// Execute relational binary expression for real or int. Use as helper function integer_binary_expression and real_binary_expression
 //
 struct Results num_Relational_Operation(struct EXPR* expr, double real_left_value, int real_right_value, bool is_int) {
   struct Results results;
@@ -656,6 +656,9 @@ struct Results real_binary_expression(struct STMT* stmt,struct EXPR* expr, doubl
   // return results;
 }  
 
+//
+// Execute binary expression for string. Involved concatenation and relational operations. Use as helpful function for binary_execute_expression
+//
 struct Results string_binary_expression(struct STMT* stmt,struct EXPR* expr, char* left_value, char* right_value, bool element_exist_left,bool element_exist_right) {
     struct Results results;
     if (expr->operator_type == OPERATOR_PLUS) {
@@ -670,7 +673,7 @@ struct Results string_binary_expression(struct STMT* stmt,struct EXPR* expr, cha
       results.result_types = Result_Types_STR;
       return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
     }   
-    if (expr->operator_type == OPERATOR_EQUAL) {
+    else if (expr->operator_type == OPERATOR_EQUAL) {
       int string_comparison = strcmp(left_value,right_value);
       if (string_comparison == 0) {
         results.operation_result.i = 1; 
@@ -682,8 +685,72 @@ struct Results string_binary_expression(struct STMT* stmt,struct EXPR* expr, cha
         results.result_types = Result_Types_BOOL;
         return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
       }
-
     }       
+    else if (expr->operator_type == OPERATOR_NOT_EQUAL) {
+      int string_comparison = strcmp(left_value,right_value);
+      if (string_comparison != 0) {
+        results.operation_result.i = 1; 
+        results.result_types = Result_Types_BOOL;
+        return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
+      }
+      else {
+        results.operation_result.i = 0; 
+        results.result_types = Result_Types_BOOL;
+        return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
+      }
+    }   
+    else if (expr->operator_type == OPERATOR_GT) {
+      int string_comparison = strcmp(left_value,right_value);
+      if (string_comparison > 0) {
+        results.operation_result.i = 1; 
+        results.result_types = Result_Types_BOOL;
+        return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
+      }
+      else {
+        results.operation_result.i = 0; 
+        results.result_types = Result_Types_BOOL;
+        return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
+      }
+    }    
+    else if (expr->operator_type == OPERATOR_GTE) {
+      int string_comparison = strcmp(left_value,right_value);
+      if (string_comparison >= 0) {
+        results.operation_result.i = 1; 
+        results.result_types = Result_Types_BOOL;
+        return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
+      }
+      else {
+        results.operation_result.i = 0; 
+        results.result_types = Result_Types_BOOL;
+        return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
+      }
+    }     
+    else if (expr->operator_type == OPERATOR_LT) {
+      int string_comparison = strcmp(left_value,right_value);
+      if (string_comparison < 0) {
+        results.operation_result.i = 1; 
+        results.result_types = Result_Types_BOOL;
+        return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
+      }
+      else {
+        results.operation_result.i = 0; 
+        results.result_types = Result_Types_BOOL;
+        return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
+      }
+    }  
+    else if (expr->operator_type == OPERATOR_LTE) {
+      int string_comparison = strcmp(left_value,right_value);
+      if (string_comparison <+ 0) {
+        results.operation_result.i = 1; 
+        results.result_types = Result_Types_BOOL;
+        return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
+      }
+      else {
+        results.operation_result.i = 0; 
+        results.result_types = Result_Types_BOOL;
+        return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
+      }
+    }               
     else {
       printf("SEMANTIC ERROR: invalid operand types (line %d)\n",stmt->line);
       results.result_types = Result_Types_INVALID;
