@@ -245,78 +245,25 @@ static struct Results return_results(struct STMT* stmt,struct EXPR* expr, struct
     }  
 }
 //
-// Execute binary expression for integer. Used as a helper function for execute_binary_expression.
 //
-struct Results integer_binary_expression(struct STMT* stmt,struct EXPR* expr, int left_value, int right_value, bool element_exist_left,bool element_exist_right) {
-    struct Results results;
+//
+struct Results num_Relational_Operation(struct EXPR* expr, double real_left_value, int real_right_value, bool is_int) {
+  struct Results results;
 
-    if (expr->operator_type == OPERATOR_PLUS) {
-      int sum = left_value + right_value;
-      results.operation_result.i = sum;
-      results.result_types = Result_Types_INT;
-      return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
-    }
-    else if (expr->operator_type == OPERATOR_MINUS) {
-      int difference = left_value - right_value;
-      results.operation_result.i = difference;
-      results.result_types = Result_Types_INT;
-      return return_results(stmt, expr, &results, element_exist_left,element_exist_right);
-    }
+  double left_value = real_left_value; // default is a float
+  double right_value = real_right_value;
 
-    else if (expr->operator_type ==  OPERATOR_ASTERISK) {
-      int product = left_value * right_value;
-      results.operation_result.i = product;
-      results.result_types = Result_Types_INT;
-      return return_results(stmt, expr, &results, element_exist_left,element_exist_right);
-    }
+  if (is_int == true) { // if it is an integer operation, then convert to int
+    left_value = (int)real_left_value; // Cast to int
+    right_value = (int)real_right_value; // Cast to int
+  }
 
-    else if (expr->operator_type ==  OPERATOR_POWER) {
-      int power = pow(left_value, right_value);
-      results.operation_result.i = power;
-      results.result_types = Result_Types_INT;
-       return return_results(stmt, expr, &results, element_exist_left,element_exist_right);
-    }
-
-    else if (expr->operator_type ==  OPERATOR_MOD) {
-      if (right_value != 0) { //if a valid denominator, continue
-        int remainder = left_value % right_value;
-        results.operation_result.i = remainder;
-        results.result_types = Result_Types_INT;
-
-        return return_results(stmt, expr, &results, element_exist_left,element_exist_right);}
-
-      else {
-        printf("**SEMANTIC ERROR: mod by 0 (line %d)\n", stmt->line);
-        results.operation_result.i = 0;
-        results.success = false;
-        results.result_types = Result_Types_INVALID;
-        return results;
-      }  
-    }
-
-    else if (expr->operator_type ==  OPERATOR_DIV) {
-      if (right_value  != 0) { //if a valid denominator, continue
-        int quotient = left_value / right_value ;
-        results.operation_result.i = quotient;
-        results.result_types = Result_Types_INT;
-       return return_results(stmt, expr, &results, element_exist_left,element_exist_right);}
-
-      else {
-        printf("**SEMANTIC ERROR: divide by 0 (line %d)\n", stmt->line);
-        results.operation_result.i = 0;
-        results.success = false;
-        results.result_types = Result_Types_INVALID;
-        return results;
-      }  
-    }
-
-    else if (expr->operator_type ==  OPERATOR_EQUAL) {
+  if (expr->operator_type ==  OPERATOR_EQUAL) {
       if (left_value == right_value) {
           results.operation_result.i = 1;
           results.success = true;
           results.result_types = Result_Types_BOOL;
           return results;
-
       }
       else {
           results.operation_result.i = 0;
@@ -339,11 +286,220 @@ struct Results integer_binary_expression(struct STMT* stmt,struct EXPR* expr, in
           return results;
       }
     }    
+    else if (expr->operator_type ==  OPERATOR_LT) {
+      if (left_value < right_value) {
+          results.operation_result.i = 1;
+          results.success = true;
+          results.result_types = Result_Types_BOOL;
+          return results;
+      }
+      else {
+          results.operation_result.i = 0;
+          results.success = true;
+          results.result_types = Result_Types_BOOL;
+          return results;
+      }
+    }      
+    else if (expr->operator_type ==  OPERATOR_GT) {
+      if (left_value > right_value) {
+          results.operation_result.i = 1;
+          results.success = true;
+          results.result_types = Result_Types_BOOL;
+          return results;
+      }
+      else {
+          results.operation_result.i = 0;
+          results.success = true;
+          results.result_types = Result_Types_BOOL;
+          return results;
+      }
+    }     
+    else if (expr->operator_type == OPERATOR_GTE) {
+      if (left_value >= right_value) {
+          results.operation_result.i = 1;
+          results.success = true;
+          results.result_types = Result_Types_BOOL;
+          return results;
+      }
+      else {
+          results.operation_result.i = 0;
+          results.success = true;
+          results.result_types = Result_Types_BOOL;
+          return results;
+      }
+    }    
+    else if (expr->operator_type == OPERATOR_LTE) {
+      if (left_value <= right_value) {
+          results.operation_result.i = 1;
+          results.success = true;
+          results.result_types = Result_Types_BOOL;
+          return results;
+      }
+      else {
+          results.operation_result.i = 0;
+          results.success = true;
+          results.result_types = Result_Types_BOOL;
+          return results;
+      }
+    }                  
   results.operation_result.i = 0;
   results.success = false;
   results.result_types = Result_Types_INVALID;
-
   return results;
+}
+
+
+//
+// Execute binary expression for integer. Used as a helper function for execute_binary_expression.
+//
+struct Results integer_binary_expression(struct STMT* stmt,struct EXPR* expr, int left_value, int right_value, bool element_exist_left,bool element_exist_right) {
+    struct Results results;
+    if (expr->operator_type == OPERATOR_PLUS) {
+      int sum = left_value + right_value;
+      results.operation_result.i = sum;
+      results.result_types = Result_Types_INT;
+      return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
+    }
+    else if (expr->operator_type == OPERATOR_MINUS) {
+      int difference = left_value - right_value;
+      results.operation_result.i = difference;
+      results.result_types = Result_Types_INT;
+      return return_results(stmt, expr, &results, element_exist_left,element_exist_right);
+    }
+    else if (expr->operator_type ==  OPERATOR_ASTERISK) {
+      int product = left_value * right_value;
+      results.operation_result.i = product;
+      results.result_types = Result_Types_INT;
+      return return_results(stmt, expr, &results, element_exist_left,element_exist_right);
+    }
+    else if (expr->operator_type ==  OPERATOR_POWER) {
+      int power = pow(left_value, right_value);
+      results.operation_result.i = power;
+      results.result_types = Result_Types_INT;
+       return return_results(stmt, expr, &results, element_exist_left,element_exist_right);
+    }
+    else if (expr->operator_type ==  OPERATOR_MOD) {
+      if (right_value != 0) { //if a valid denominator, continue
+        int remainder = left_value % right_value;
+        results.operation_result.i = remainder;
+        results.result_types = Result_Types_INT;
+
+        return return_results(stmt, expr, &results, element_exist_left,element_exist_right);}
+
+      else {
+        printf("**SEMANTIC ERROR: mod by 0 (line %d)\n", stmt->line);
+        results.operation_result.i = 0;
+        results.success = false;
+        results.result_types = Result_Types_INVALID;
+        return results;
+      }  
+    }
+    else if (expr->operator_type ==  OPERATOR_DIV) {
+      if (right_value  != 0) { //if a valid denominator, continue
+        int quotient = left_value / right_value ;
+        results.operation_result.i = quotient;
+        results.result_types = Result_Types_INT;
+       return return_results(stmt, expr, &results, element_exist_left,element_exist_right);}
+
+      else {
+        printf("**SEMANTIC ERROR: divide by 0 (line %d)\n", stmt->line);
+        results.operation_result.i = 0;
+        results.success = false;
+        results.result_types = Result_Types_INVALID;
+        return results;
+      }  
+    } 
+    else {
+       return num_Relational_Operation(expr,left_value,right_value,true);
+    }
+  //   else if (expr->operator_type ==  OPERATOR_EQUAL) {
+  //     if (left_value == right_value) {
+  //         results.operation_result.i = 1;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //     else {
+  //         results.operation_result.i = 0;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //   }
+  //   else if (expr->operator_type ==  OPERATOR_NOT_EQUAL) {
+  //     if (left_value != right_value) {
+  //         results.operation_result.i = 1;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //     else {
+  //         results.operation_result.i = 0;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //   }    
+  //   else if (expr->operator_type ==  OPERATOR_LT) {
+  //     if (left_value < right_value) {
+  //         results.operation_result.i = 1;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //     else {
+  //         results.operation_result.i = 0;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //   }      
+  //   else if (expr->operator_type ==  OPERATOR_GT) {
+  //     if (left_value > right_value) {
+  //         results.operation_result.i = 1;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //     else {
+  //         results.operation_result.i = 0;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //   }     
+  //   else if (expr->operator_type == OPERATOR_GTE) {
+  //     if (left_value >= right_value) {
+  //         results.operation_result.i = 1;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //     else {
+  //         results.operation_result.i = 0;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //   }    
+  //   else if (expr->operator_type == OPERATOR_LTE) {
+  //     if (left_value <= right_value) {
+  //         results.operation_result.i = 1;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //     else {
+  //         results.operation_result.i = 0;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //   }                  
+  // results.operation_result.i = 0;
+  // results.success = false;
+  // results.result_types = Result_Types_INVALID;
+  // return results;
 }  
 
 //
@@ -407,25 +563,97 @@ struct Results real_binary_expression(struct STMT* stmt,struct EXPR* expr, doubl
         return results;
       }  
     }
-
-    else if (expr->operator_type ==  OPERATOR_EQUAL) {
-      if (left_value == right_value) {
-          results.operation_result.i = 1;
-          results.success = true;
-          results.result_types = Result_Types_BOOL;
-          return results;
-      }
-      else {
-          results.operation_result.i = 0;
-          results.success = true;
-          results.result_types = Result_Types_BOOL;
-          return results;
-      }
-    }
-  results.operation_result.d = 0;
-  results.success = false;
-  results.result_types = Result_Types_INVALID;
-  return results;
+    else {
+       return num_Relational_Operation(expr,left_value,right_value,false);
+    }    
+  //   else if (expr->operator_type ==  OPERATOR_EQUAL) {
+  //     if (left_value == right_value) {
+  //         results.operation_result.i = 1;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //     else {
+  //         results.operation_result.i = 0;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //   }
+  //   else if (expr->operator_type ==  OPERATOR_NOT_EQUAL) {
+  //     if (left_value != right_value) {
+  //         results.operation_result.i = 1;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //     else {
+  //         results.operation_result.i = 0;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //   }    
+  //   else if (expr->operator_type ==  OPERATOR_LT) {
+  //     if (left_value < right_value) {
+  //         results.operation_result.i = 1;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //     else {
+  //         results.operation_result.i = 0;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //   }      
+  //   else if (expr->operator_type ==  OPERATOR_GT) {
+  //     if (left_value > right_value) {
+  //         results.operation_result.i = 1;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //     else {
+  //         results.operation_result.i = 0;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //   }     
+  //   else if (expr->operator_type == OPERATOR_GTE) {
+  //     if (left_value >= right_value) {
+  //         results.operation_result.i = 1;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //     else {
+  //         results.operation_result.i = 0;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //   }    
+  //   else if (expr->operator_type == OPERATOR_LTE) {
+  //     if (left_value <= right_value) {
+  //         results.operation_result.i = 1;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //     else {
+  //         results.operation_result.i = 0;
+  //         results.success = true;
+  //         results.result_types = Result_Types_BOOL;
+  //         return results;
+  //     }
+  //   }     
+  // results.operation_result.d = 0;
+  // results.success = false;
+  // results.result_types = Result_Types_INVALID;
+  // return results;
 }  
 
 struct Results string_binary_expression(struct STMT* stmt,struct EXPR* expr, char* left_value, char* right_value, bool element_exist_left,bool element_exist_right) {
