@@ -36,62 +36,80 @@ static bool execute_function_call(struct STMT* stmt, struct RAM* memory) {
    // get function name and check it if's the function call print
   char* function_name = stmt->types.function_call->function_name;
   char* print_function = "print";
-  int comparison = strcmp(print_function,function_name);
-  if (comparison == 0 && stmt->types.function_call->parameter == NULL) { // If a print function and no parameter, then print end line
-    printf("\n"); 
-    return true;
-  }
-  else if (comparison == 0 && stmt->types.function_call->parameter->element_type == ELEMENT_STR_LITERAL) { // if a print function and string literal, then print it with an end line
-    printf("%s\n", stmt->types.function_call->parameter->element_value);
-    return true;
-  }
-  else if (comparison == 0 && stmt->types.function_call->parameter->element_type == ELEMENT_INT_LITERAL) { // if a print function and string integer, then print it with an end line
-    int number = atoi(stmt->types.function_call->parameter->element_value);
-    printf("%d\n", number);
-    return true;
-  }
-  else if (comparison == 0 && stmt->types.function_call->parameter->element_type == ELEMENT_REAL_LITERAL) { // if a print function and string real, then print it with an end line
-    double floating = atof(stmt->types.function_call->parameter->element_value);
-    printf("%lf\n", floating);
-    return true;
-  }
-  else if (comparison == 0 && stmt->types.function_call->parameter->element_type == ELEMENT_TRUE) { // if a print function and bool True, then print True with an end line
-    printf("True\n");
-    return true;
-  }
-  else if (comparison == 0 && stmt->types.function_call->parameter->element_type == ELEMENT_FALSE) { // if a print function and bool False, then print False with an end line
-    printf("False\n");
-    return true;
-  }  
-  else {
-    // check if it is a variable
-    struct RAM_VALUE* VALUE = ram_read_cell_by_name(memory,stmt->types.function_call->parameter->element_value);
-    char* name = stmt->types.function_call->parameter->element_value;
-    if (VALUE != NULL) { // If it does exist, access the variable
-      if (VALUE->value_type == RAM_TYPE_STR){
-        printf("%s\n", VALUE->types.s);
-      }
-      else if (VALUE->value_type == RAM_TYPE_INT ){
-        printf("%d\n", VALUE->types.i);
-      }
-      else if (VALUE->value_type == RAM_TYPE_REAL){
-        printf("%lf\n", VALUE->types.d);
-      }
-      else if (VALUE->value_type == RAM_TYPE_BOOLEAN) { // if boolean, check if 0 or 1. Print accordingly
-        if (VALUE->types.i == 1) {
-          printf("True\n");
-        }
-        else {
-          printf("False\n");
-        }
-      }
-      ram_free_value(VALUE); 
+  char* input_function = "input";
+  char* float_function = "float";
+  char* int_function = "int";
+  int print_comparison = strcmp(print_function,function_name);
+  int input_comparison = strcmp(input_function,function_name);
+  int float_comparison = strcmp(float_function,function_name);
+  int int_comparison = strcmp(int_function,function_name);
+
+  if (print_comparison == 0) {
+    if (stmt->types.function_call->parameter == NULL) { // If a print function and no parameter, then print end line
+      printf("\n"); 
       return true;
     }
+    else if (stmt->types.function_call->parameter->element_type == ELEMENT_STR_LITERAL) { // if a print function and string literal, then print it with an end line
+      printf("%s\n", stmt->types.function_call->parameter->element_value);
+      return true;
+    }
+    else if (stmt->types.function_call->parameter->element_type == ELEMENT_INT_LITERAL) { // if a print function and string integer, then print it with an end line
+      int number = atoi(stmt->types.function_call->parameter->element_value);
+      printf("%d\n", number);
+      return true;
+    }
+    else if (stmt->types.function_call->parameter->element_type == ELEMENT_REAL_LITERAL) { // if a print function and string real, then print it with an end line
+      double floating = atof(stmt->types.function_call->parameter->element_value);
+      printf("%lf\n", floating);
+      return true;
+    }
+    else if (stmt->types.function_call->parameter->element_type == ELEMENT_TRUE) { // if a print function and bool True, then print True with an end line
+      printf("True\n");
+      return true;
+    }
+    else if (stmt->types.function_call->parameter->element_type == ELEMENT_FALSE) { // if a print function and bool False, then print False with an end line
+      printf("False\n");
+      return true;
+    }  
     else {
-      printf("**SEMANTIC ERROR: name '%s' is not defined (line %d)\n", name, stmt->line);
-      ram_free_value(VALUE); 
-      return false;
+      // check if it is a variable
+      struct RAM_VALUE* VALUE = ram_read_cell_by_name(memory,stmt->types.function_call->parameter->element_value);
+      char* name = stmt->types.function_call->parameter->element_value;
+      if (VALUE != NULL) { // If it does exist, access the variable
+        if (VALUE->value_type == RAM_TYPE_STR){
+          printf("%s\n", VALUE->types.s);
+        }
+        else if (VALUE->value_type == RAM_TYPE_INT ){
+          printf("%d\n", VALUE->types.i);
+        }
+        else if (VALUE->value_type == RAM_TYPE_REAL){
+          printf("%lf\n", VALUE->types.d);
+        }
+        else if (VALUE->value_type == RAM_TYPE_BOOLEAN) { // if boolean, check if 0 or 1. Print accordingly
+          if (VALUE->types.i == 1) {
+            printf("True\n");
+          }
+          else {
+            printf("False\n");
+          }
+        }
+        ram_free_value(VALUE); 
+        return true;
+      }
+      else {
+        printf("**SEMANTIC ERROR: name '%s' is not defined (line %d)\n", name, stmt->line);
+        ram_free_value(VALUE); 
+        return false;
+      }
+    }
+  }
+  else if (input_comparison == 0) {
+    NULL;
+  }
+  else if (float_comparison == 0) {
+    if (stmt->types.function_call->parameter->element_type == ELEMENT_INT_LITERAL || stmt->types.function_call->parameter->element_type == ELEMENT_REAL_LITERAL) {
+      double floating = atof(stmt->types.function_call->parameter->element_value); // 
+
     }
   }
 }
@@ -121,7 +139,7 @@ struct Operand
 //
 // Retrieve the appropriate value given LHS or RHS. Account for if the given variable don't exist
 //
-struct Operand retrived_value(struct UNARY_EXPR* unary_expr, struct RAM* memory) {
+static struct Operand retrived_value(struct UNARY_EXPR* unary_expr, struct RAM* memory) {
   struct Operand Operand;
   if (unary_expr->element->element_type == ELEMENT_INT_LITERAL) {
     int number = atoi(unary_expr->element->element_value); // Access integer string and turn it into integer
@@ -247,7 +265,7 @@ static struct Results return_results(struct STMT* stmt,struct EXPR* expr, struct
 //
 // Execute relational binary expression for real or int. Use as helper function integer_binary_expression and real_binary_expression
 //
-struct Results num_Relational_Operation(struct EXPR* expr, double real_left_value, int real_right_value, bool is_int) {
+static struct Results num_Relational_Operation(struct EXPR* expr, double real_left_value, int real_right_value, bool is_int) {
   struct Results results;
 
   double left_value = real_left_value; // default is a float
@@ -352,7 +370,7 @@ struct Results num_Relational_Operation(struct EXPR* expr, double real_left_valu
 //
 // Execute binary expression for integer. Used as a helper function for execute_binary_expression.
 //
-struct Results integer_binary_expression(struct STMT* stmt,struct EXPR* expr, int left_value, int right_value, bool element_exist_left,bool element_exist_right) {
+static struct Results integer_binary_expression(struct STMT* stmt,struct EXPR* expr, int left_value, int right_value, bool element_exist_left,bool element_exist_right) {
     struct Results results;
     if (expr->operator_type == OPERATOR_PLUS) {
       int sum = left_value + right_value;
@@ -505,7 +523,7 @@ struct Results integer_binary_expression(struct STMT* stmt,struct EXPR* expr, in
 //
 // Execute binary expression for integer. Used as a helper function for execute_binary_expression.
 //
-struct Results real_binary_expression(struct STMT* stmt,struct EXPR* expr, double left_value, double right_value, bool element_exist_left,bool element_exist_right) {
+static struct Results real_binary_expression(struct STMT* stmt,struct EXPR* expr, double left_value, double right_value, bool element_exist_left,bool element_exist_right) {
     struct Results results;
     if (expr->operator_type == OPERATOR_PLUS) {
       // printf("REAL ADDING OPERATION\n");
@@ -659,7 +677,7 @@ struct Results real_binary_expression(struct STMT* stmt,struct EXPR* expr, doubl
 //
 // Execute binary expression for string. Involved concatenation and relational operations. Use as helpful function for binary_execute_expression
 //
-struct Results string_binary_expression(struct STMT* stmt,struct EXPR* expr, char* left_value, char* right_value, bool element_exist_left,bool element_exist_right) {
+static struct Results string_binary_expression(struct STMT* stmt,struct EXPR* expr, char* left_value, char* right_value, bool element_exist_left,bool element_exist_right) {
     struct Results results;
     if (expr->operator_type == OPERATOR_PLUS) {
       // printf("STRING ADDING OPERATION\n");
@@ -829,13 +847,22 @@ static bool Pointer_Helper(struct STMT* stmt, struct RAM* memory,char* identifie
       return true;  
 }
 
+static bool function_assigment(struct STMT* stmt, struct RAM* memory) {
+  // Get function name and check what kind of function call it is
+  char* function_name = stmt->types.function_call->function_name;
+  char* input_function = "input";
+  char* float_function = "float";
+  char* int_function = "int";
 
+
+
+}
 //
 // Execute assignment for string, real, and string. Also allow for variable assigment. An assignment with no expression result in error
 //
 static bool execute_assignment(struct STMT* stmt, struct RAM* memory) {
-  // Get var name
-  char* identifier = stmt->types.assignment->var_name;
+  char* identifier = stmt->types.assignment->var_name;   // Get var name
+
   if (stmt->types.assignment->rhs == NULL){ // if rhs don't exist, error
     printf("**SEMANTIC ERROR: unknown function (line %d)\n", stmt->line);
     return false;
@@ -1007,7 +1034,6 @@ static bool execute_assignment(struct STMT* stmt, struct RAM* memory) {
           value.value_type = RAM_TYPE_BOOLEAN;  // Create value
           value.types.i = results.operation_result.i;
         }
-
           if (stmt->types.assignment->isPtrDeref == true) {
             return Pointer_Helper(stmt, memory,identifier,value);
           }
@@ -1020,6 +1046,9 @@ static bool execute_assignment(struct STMT* stmt, struct RAM* memory) {
         return false;
       }
     }
+  } 
+  else { // else, it's a function, 
+
   }
   return false;
 }
