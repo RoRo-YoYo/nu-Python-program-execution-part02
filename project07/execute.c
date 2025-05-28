@@ -155,41 +155,64 @@ static bool assignment_N_function_call(struct STMT* stmt, struct FUNCTION_CALL* 
 
   int parameter_type = function_call->parameter->element_type; // access type
   char* parameter_value = function_call->parameter->element_value; // access value
+  printf("%s\n", parameter_value);
 
-  if (input_comparison == 0) {
+  bool is_all_zero = false;
+
+  int char_length = strlen(parameter_value);
+
     struct RAM_VALUE* VALUE = ram_read_cell_by_name(memory,parameter_value); // access the value (ASSUMED TO BE ALWAYS A VARIABLE)
     if (VALUE != NULL) { // If variable does exist, access the variable (ASSUMED TO BE ALWAYS RAM_TYPE_STR)
-        int integer = atoi(VALUE->types.s);
-        ram_free_value(VALUE); 
-        if (integer == 0 ) { // if fail
-          printf("**SEMANTIC ERROR: invalid string for int() (line %d)\n", stmt->line);
-          return false;
+        char* variable_value = VALUE->types.s;
+        printf("The value is %s\n", variable_value);
+
+
+        for (int i = 0; i < char_length; i++) {
+          if (variable_value[i] == '\0') { // if the end of char*, then just break
+            printf("NULL terminator\n");
+            break;
+          }
+          if (variable_value[i] != '0') {
+            is_all_zero = false;
+            printf("%i\n", i);
+            printf("%c\n", variable_value[i]);
+
+            printf("Is not all zero\n");
+            break;
+          }
+          is_all_zero = true;
+          printf("Is all zero\n");
         }
-        else {
-          struct RAM_VALUE NEW_VALUE; // store value
-          NEW_VALUE.value_type = RAM_TYPE_INT;
-          NEW_VALUE.types.i = integer;
-          ram_write_cell_by_name(memory,NEW_VALUE,identifier);
-          return true;}}
-    else {
-      printf("**SEMANTIC ERROR: name '%s' is not defined (line %d)\n", parameter_value, stmt->line);
-      return false;}
-    } 
-  else if (float_comparison == 0) {
-    struct RAM_VALUE* VALUE = ram_read_cell_by_name(memory,parameter_value); // access the variable
-    if (VALUE != NULL) { // If variable does exist, access the value (ASSUMED TO BE ALWAYS RAM_TYPE_STR)
-        double floating = atoi(VALUE->types.s);
-        ram_free_value(VALUE); 
-        if (floating == 0 ) { // if fail
-          printf("**SEMANTIC ERROR: invalid string for float() (line %d)\n", stmt->line);
-          return false;
-        }
-        else {
-          struct RAM_VALUE NEW_VALUE; // store value
-          NEW_VALUE.value_type = RAM_TYPE_REAL;
-          NEW_VALUE.types.d = floating;
-          ram_write_cell_by_name(memory,NEW_VALUE,identifier);
-          return true;}}
+
+        if (int_comparison == 0) {
+          printf("is int()\n");
+          int integer = atoi(VALUE->types.s);
+          ram_free_value(VALUE); 
+          if (integer == 0 && is_all_zero == false) { // if fail
+            printf("**SEMANTIC ERROR: invalid string for int() (line %d)\n", stmt->line);
+            return false;
+          }
+          else {
+            struct RAM_VALUE NEW_VALUE; // store value
+            NEW_VALUE.value_type = RAM_TYPE_INT;
+            NEW_VALUE.types.i = integer;
+            ram_write_cell_by_name(memory,NEW_VALUE,identifier);
+            printf("Wrote into memory\n");
+            return true;}}
+
+        else if (float_comparison == 0) {
+            double floating = atof(VALUE->types.s);
+            ram_free_value(VALUE); 
+            if (floating == 0 && is_all_zero == false) { // if fail
+              printf("**SEMANTIC ERROR: invalid string for float() (line %d)\n", stmt->line);
+              return false;}
+            else {
+              struct RAM_VALUE NEW_VALUE; // store value
+              NEW_VALUE.value_type = RAM_TYPE_REAL;
+              NEW_VALUE.types.d = floating;
+              ram_write_cell_by_name(memory,NEW_VALUE,identifier);
+              return true;}
+            }
     else {
       printf("**SEMANTIC ERROR: name '%s' is not defined (line %d)\n", parameter_value, stmt->line);
       return false;}
