@@ -39,27 +39,31 @@ static bool execute_function_call(struct STMT* stmt, struct RAM* memory) {
   char* input_function = "input";
   char* float_function = "float";
   char* int_function = "int";
+
   int print_comparison = strcmp(print_function,function_name);
   int input_comparison = strcmp(input_function,function_name);
   int float_comparison = strcmp(float_function,function_name);
   int int_comparison = strcmp(int_function,function_name);
 
+  int parameter_type = stmt->types.function_call->parameter->element_type;
+  char* parameter_value = stmt->types.function_call->parameter->element_value; 
+
   if (print_comparison == 0) {
-    if (stmt->types.function_call->parameter == NULL) { // If a print function and no parameter, then print end line
+    if (parameter_value == NULL) { // If a print function and no parameter, then print end line
       printf("\n"); 
       return true;
     }
     else if (stmt->types.function_call->parameter->element_type == ELEMENT_STR_LITERAL) { // if a print function and string literal, then print it with an end line
-      printf("%s\n", stmt->types.function_call->parameter->element_value);
+      printf("%s\n", parameter_value);
       return true;
     }
     else if (stmt->types.function_call->parameter->element_type == ELEMENT_INT_LITERAL) { // if a print function and string integer, then print it with an end line
-      int number = atoi(stmt->types.function_call->parameter->element_value);
+      int number = atoi(parameter_value);
       printf("%d\n", number);
       return true;
     }
     else if (stmt->types.function_call->parameter->element_type == ELEMENT_REAL_LITERAL) { // if a print function and string real, then print it with an end line
-      double floating = atof(stmt->types.function_call->parameter->element_value);
+      double floating = atof(parameter_value);
       printf("%lf\n", floating);
       return true;
     }
@@ -73,8 +77,7 @@ static bool execute_function_call(struct STMT* stmt, struct RAM* memory) {
     }  
     else {
       // check if it is a variable
-      struct RAM_VALUE* VALUE = ram_read_cell_by_name(memory,stmt->types.function_call->parameter->element_value);
-      char* name = stmt->types.function_call->parameter->element_value;
+      struct RAM_VALUE* VALUE = ram_read_cell_by_name(memory,parameter_value);
       if (VALUE != NULL) { // If it does exist, access the variable
         if (VALUE->value_type == RAM_TYPE_STR){
           printf("%s\n", VALUE->types.s);
@@ -97,21 +100,101 @@ static bool execute_function_call(struct STMT* stmt, struct RAM* memory) {
         return true;
       }
       else {
-        printf("**SEMANTIC ERROR: name '%s' is not defined (line %d)\n", name, stmt->line);
+        printf("**SEMANTIC ERROR: name '%s' is not defined (line %d)\n", parameter_value, stmt->line);
         ram_free_value(VALUE); 
         return false;
       }
     }
   }
   else if (input_comparison == 0) {
-    NULL;
-  }
+    struct RAM_VALUE* VALUE = ram_read_cell_by_name(memory,parameter_value); // access the value
+    if (VALUE != NULL) { // If variable does exist, access the variable (ASSUMED TO BE ALWAYS RAM_TYPE_STR)
+        int integer = atoi(VALUE->types.s);
+        ram_free_value(VALUE); 
+        if (integer == 0 ) { // if fail
+          return false;
+        }
+        else {
+          return true;}}
+    else {
+      printf("**SEMANTIC ERROR: name '%s' is not defined (line %d)\n", parameter_value, stmt->line);
+      return false;}
+    } 
   else if (float_comparison == 0) {
-    if (stmt->types.function_call->parameter->element_type == ELEMENT_INT_LITERAL || stmt->types.function_call->parameter->element_type == ELEMENT_REAL_LITERAL) {
-      double floating = atof(stmt->types.function_call->parameter->element_value); // 
+    struct RAM_VALUE* VALUE = ram_read_cell_by_name(memory,parameter_value); // access the value
+    if (VALUE != NULL) { // If variable does exist, access the variable (ASSUMED TO BE ALWAYS RAM_TYPE_STR)
+        double floating = atoi(VALUE->types.s);
+        ram_free_value(VALUE); 
+        if (floating == 0 ) { // if fail
+          return false;
+        }
+        else {
+          struct RAM_VALUE NEW_VALUE; // store value
+          NEW_VALUE.value_type = RAM_TYPE_REAL;
+          NEW_VALUE.types.d = floating;
+          ram_write_cell_by_name(memory,NEW_VALUE,parameter_value);
+          return true;}}
+    else {
+      printf("**SEMANTIC ERROR: name '%s' is not defined (line %d)\n", parameter_value, stmt->line);
+      return false;}
+    } 
+  return false;
+} 
 
-    }
-  }
+static bool assignment_N_function_call(struct STMT* stmt, struct FUNCTION_CALL* function_call, struct RAM* memory, char* identifier) {
+  printf("assignment_N_function_call\n");
+  // get function name and check it if's the function call print
+  char* function_name = function_call->function_name;
+  char* input_function = "input";
+  char* float_function = "float";
+  char* int_function = "int";
+  // Comparing function name
+  int input_comparison = strcmp(input_function,function_name);
+  int float_comparison = strcmp(float_function,function_name);
+  int int_comparison = strcmp(int_function,function_name);
+
+  int parameter_type = function_call->parameter->element_type; // access type
+  char* parameter_value = function_call->parameter->element_value; // access value
+
+  if (input_comparison == 0) {
+    struct RAM_VALUE* VALUE = ram_read_cell_by_name(memory,parameter_value); // access the value (ASSUMED TO BE ALWAYS A VARIABLE)
+    if (VALUE != NULL) { // If variable does exist, access the variable (ASSUMED TO BE ALWAYS RAM_TYPE_STR)
+        int integer = atoi(VALUE->types.s);
+        ram_free_value(VALUE); 
+        if (integer == 0 ) { // if fail
+          printf("**SEMANTIC ERROR: invalid string for int() (line %d)\n", stmt->line);
+          return false;
+        }
+        else {
+          struct RAM_VALUE NEW_VALUE; // store value
+          NEW_VALUE.value_type = RAM_TYPE_INT;
+          NEW_VALUE.types.i = integer;
+          ram_write_cell_by_name(memory,NEW_VALUE,identifier);
+          return true;}}
+    else {
+      printf("**SEMANTIC ERROR: name '%s' is not defined (line %d)\n", parameter_value, stmt->line);
+      return false;}
+    } 
+  else if (float_comparison == 0) {
+    struct RAM_VALUE* VALUE = ram_read_cell_by_name(memory,parameter_value); // access the variable
+    if (VALUE != NULL) { // If variable does exist, access the value (ASSUMED TO BE ALWAYS RAM_TYPE_STR)
+        double floating = atoi(VALUE->types.s);
+        ram_free_value(VALUE); 
+        if (floating == 0 ) { // if fail
+          printf("**SEMANTIC ERROR: invalid string for float() (line %d)\n", stmt->line);
+          return false;
+        }
+        else {
+          struct RAM_VALUE NEW_VALUE; // store value
+          NEW_VALUE.value_type = RAM_TYPE_REAL;
+          NEW_VALUE.types.d = floating;
+          ram_write_cell_by_name(memory,NEW_VALUE,identifier);
+          return true;}}
+    else {
+      printf("**SEMANTIC ERROR: name '%s' is not defined (line %d)\n", parameter_value, stmt->line);
+      return false;}
+    } 
+  return false;
 }
 
 enum OPERAND_VALUE_TYPES
@@ -430,94 +513,6 @@ static struct Results integer_binary_expression(struct STMT* stmt,struct EXPR* e
     else {
        return num_Relational_Operation(expr,left_value,right_value,true);
     }
-  //   else if (expr->operator_type ==  OPERATOR_EQUAL) {
-  //     if (left_value == right_value) {
-  //         results.operation_result.i = 1;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //     else {
-  //         results.operation_result.i = 0;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //   }
-  //   else if (expr->operator_type ==  OPERATOR_NOT_EQUAL) {
-  //     if (left_value != right_value) {
-  //         results.operation_result.i = 1;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //     else {
-  //         results.operation_result.i = 0;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //   }    
-  //   else if (expr->operator_type ==  OPERATOR_LT) {
-  //     if (left_value < right_value) {
-  //         results.operation_result.i = 1;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //     else {
-  //         results.operation_result.i = 0;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //   }      
-  //   else if (expr->operator_type ==  OPERATOR_GT) {
-  //     if (left_value > right_value) {
-  //         results.operation_result.i = 1;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //     else {
-  //         results.operation_result.i = 0;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //   }     
-  //   else if (expr->operator_type == OPERATOR_GTE) {
-  //     if (left_value >= right_value) {
-  //         results.operation_result.i = 1;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //     else {
-  //         results.operation_result.i = 0;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //   }    
-  //   else if (expr->operator_type == OPERATOR_LTE) {
-  //     if (left_value <= right_value) {
-  //         results.operation_result.i = 1;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //     else {
-  //         results.operation_result.i = 0;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //   }                  
-  // results.operation_result.i = 0;
-  // results.success = false;
-  // results.result_types = Result_Types_INVALID;
-  // return results;
 }  
 
 //
@@ -584,94 +579,6 @@ static struct Results real_binary_expression(struct STMT* stmt,struct EXPR* expr
     else {
        return num_Relational_Operation(expr,left_value,right_value,false);
     }    
-  //   else if (expr->operator_type ==  OPERATOR_EQUAL) {
-  //     if (left_value == right_value) {
-  //         results.operation_result.i = 1;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //     else {
-  //         results.operation_result.i = 0;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //   }
-  //   else if (expr->operator_type ==  OPERATOR_NOT_EQUAL) {
-  //     if (left_value != right_value) {
-  //         results.operation_result.i = 1;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //     else {
-  //         results.operation_result.i = 0;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //   }    
-  //   else if (expr->operator_type ==  OPERATOR_LT) {
-  //     if (left_value < right_value) {
-  //         results.operation_result.i = 1;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //     else {
-  //         results.operation_result.i = 0;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //   }      
-  //   else if (expr->operator_type ==  OPERATOR_GT) {
-  //     if (left_value > right_value) {
-  //         results.operation_result.i = 1;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //     else {
-  //         results.operation_result.i = 0;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //   }     
-  //   else if (expr->operator_type == OPERATOR_GTE) {
-  //     if (left_value >= right_value) {
-  //         results.operation_result.i = 1;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //     else {
-  //         results.operation_result.i = 0;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //   }    
-  //   else if (expr->operator_type == OPERATOR_LTE) {
-  //     if (left_value <= right_value) {
-  //         results.operation_result.i = 1;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //     else {
-  //         results.operation_result.i = 0;
-  //         results.success = true;
-  //         results.result_types = Result_Types_BOOL;
-  //         return results;
-  //     }
-  //   }     
-  // results.operation_result.d = 0;
-  // results.success = false;
-  // results.result_types = Result_Types_INVALID;
-  // return results;
 }  
 
 //
@@ -847,20 +754,11 @@ static bool Pointer_Helper(struct STMT* stmt, struct RAM* memory,char* identifie
       return true;  
 }
 
-static bool function_assigment(struct STMT* stmt, struct RAM* memory) {
-  // Get function name and check what kind of function call it is
-  char* function_name = stmt->types.function_call->function_name;
-  char* input_function = "input";
-  char* float_function = "float";
-  char* int_function = "int";
-
-
-
-}
 //
 // Execute assignment for string, real, and string. Also allow for variable assigment. An assignment with no expression result in error
 //
 static bool execute_assignment(struct STMT* stmt, struct RAM* memory) {
+  printf("execute_assignment");
   char* identifier = stmt->types.assignment->var_name;   // Get var name
 
   if (stmt->types.assignment->rhs == NULL){ // if rhs don't exist, error
@@ -869,6 +767,7 @@ static bool execute_assignment(struct STMT* stmt, struct RAM* memory) {
 }
   // Check if expression 
   if (stmt->types.assignment->rhs->value_type == VALUE_EXPR) { // If it is an expression
+      printf("IS EXPRESSION");
 
     if (stmt->types.assignment->rhs->types.expr->lhs->element->element_type == ELEMENT_INT_LITERAL && stmt->types.assignment->rhs->types.expr->isBinaryExpr == false) { // check if it is uniteral integer expression
 
@@ -1047,9 +946,6 @@ static bool execute_assignment(struct STMT* stmt, struct RAM* memory) {
       }
     }
   } 
-  else { // else, it's a function, 
-
-  }
   return false;
 }
 
@@ -1073,10 +969,19 @@ void execute(struct STMT* program, struct RAM* memory)
 
   while (stmt != NULL ) { // traverse through the program statements
     if (stmt->stmt_type == STMT_ASSIGNMENT) {
-      bool result = execute_assignment(stmt,memory);
+      printf("is an assignment\n");
+      bool result;
+      if (stmt->types.assignment->rhs->value_type == VALUE_FUNCTION_CALL){ // if it is a function call
+        printf("is an assignment & function call\n");
+        char* identifier = stmt->types.assignment->var_name;   // Get var name
+        result = assignment_N_function_call(stmt, stmt->types.assignment->rhs->types.function_call,memory,identifier);}
+      else {
+        result = execute_assignment(stmt,memory);}
       if (result == false) {
+        printf("IF\n");
         break;
       }
+      printf("AFTER\n");
       stmt = stmt->types.assignment->next_stmt; // advance
     } // if
 
