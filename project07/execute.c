@@ -17,8 +17,6 @@
 #include <string.h>
 #include <assert.h>
 
-#include <string.h>
-
 #include "programgraph.h"
 #include "ram.h"
 #include "execute.h"
@@ -32,52 +30,45 @@
 // Execute function call of print(). Allow for empty, literal string, and variable as parameter. Else, it's error, including undefined varaible
 //
 //
+
 static bool execute_function_call(struct STMT* stmt, struct RAM* memory) {
+
    // get function name and check it if's the function call print
   char* function_name = stmt->types.function_call->function_name;
+
   char* print_function = "print";
-  char* input_function = "input";
-  char* float_function = "float";
-  char* int_function = "int";
 
   int print_comparison = strcmp(print_function,function_name);
-  int input_comparison = strcmp(input_function,function_name);
-  int float_comparison = strcmp(float_function,function_name);
-  int int_comparison = strcmp(int_function,function_name);
 
-  int parameter_type = stmt->types.function_call->parameter->element_type;
-  char* parameter_value = stmt->types.function_call->parameter->element_value; 
-
-  if (print_comparison == 0) {
-    if (parameter_value == NULL) { // If a print function and no parameter, then print end line
+    if (print_comparison == 0 && stmt->types.function_call->parameter == NULL) { // If a print function and no parameter, then print end line
       printf("\n"); 
       return true;
     }
-    else if (stmt->types.function_call->parameter->element_type == ELEMENT_STR_LITERAL) { // if a print function and string literal, then print it with an end line
-      printf("%s\n", parameter_value);
+    else if (print_comparison == 0 && stmt->types.function_call->parameter->element_type == ELEMENT_STR_LITERAL) { // if a print function and string literal, then print it with an end line
+      printf("%s\n", stmt->types.function_call->parameter->element_value);
       return true;
     }
-    else if (stmt->types.function_call->parameter->element_type == ELEMENT_INT_LITERAL) { // if a print function and string integer, then print it with an end line
-      int number = atoi(parameter_value);
+    else if (print_comparison == 0 && stmt->types.function_call->parameter->element_type == ELEMENT_INT_LITERAL) { // if a print function and string integer, then print it with an end line
+      int number = atoi(stmt->types.function_call->parameter->element_value);
       printf("%d\n", number);
       return true;
     }
-    else if (stmt->types.function_call->parameter->element_type == ELEMENT_REAL_LITERAL) { // if a print function and string real, then print it with an end line
-      double floating = atof(parameter_value);
+    else if (print_comparison == 0 && stmt->types.function_call->parameter->element_type == ELEMENT_REAL_LITERAL) { // if a print function and string real, then print it with an end line
+      double floating = atof(stmt->types.function_call->parameter->element_value);
       printf("%lf\n", floating);
       return true;
     }
-    else if (stmt->types.function_call->parameter->element_type == ELEMENT_TRUE) { // if a print function and bool True, then print True with an end line
+    else if (print_comparison == 0 && stmt->types.function_call->parameter->element_type == ELEMENT_TRUE) { // if a print function and bool True, then print True with an end line
       printf("True\n");
       return true;
     }
-    else if (stmt->types.function_call->parameter->element_type == ELEMENT_FALSE) { // if a print function and bool False, then print False with an end line
+    else if (print_comparison == 0 && stmt->types.function_call->parameter->element_type == ELEMENT_FALSE) { // if a print function and bool False, then print False with an end line
       printf("False\n");
       return true;
     }  
     else {
       // check if it is a variable
-      struct RAM_VALUE* VALUE = ram_read_cell_by_name(memory,parameter_value);
+      struct RAM_VALUE* VALUE = ram_read_cell_by_name(memory,stmt->types.function_call->parameter->element_value);
       if (VALUE != NULL) { // If it does exist, access the variable
         if (VALUE->value_type == RAM_TYPE_STR){
           printf("%s\n", VALUE->types.s);
@@ -100,17 +91,14 @@ static bool execute_function_call(struct STMT* stmt, struct RAM* memory) {
         return true;
       }
       else {
-        printf("**SEMANTIC ERROR: name '%s' is not defined (line %d)\n", parameter_value, stmt->line);
+        printf("**SEMANTIC ERROR: name '%s' is not defined (line %d)\n", stmt->types.function_call->parameter->element_value, stmt->line);
         ram_free_value(VALUE); 
         return false;
       }
     }
-  }
-  return false;
 } 
 
 static bool assignment_N_function_call(struct STMT* stmt, struct FUNCTION_CALL* function_call, struct RAM* memory, char* identifier) {
-  printf("assignment_N_function_call\n");
   // get function name and check it if's the function call print
   char* function_name = function_call->function_name;
   char* input_function = "input";
@@ -253,7 +241,6 @@ static struct Operand retrived_value(struct UNARY_EXPR* unary_expr, struct RAM* 
   }
   else if (unary_expr->element->element_type == ELEMENT_STR_LITERAL) {
     char* string_value = unary_expr->element->element_value; // Access string
-    // printf("ACCESSING STRING\n");
     Operand.exist = true;
     Operand.operand_Types = Operand_Types_STR;
     Operand.operand_value.s = string_value;
@@ -534,7 +521,6 @@ static struct Results integer_binary_expression(struct STMT* stmt,struct EXPR* e
 static struct Results real_binary_expression(struct STMT* stmt,struct EXPR* expr, double left_value, double right_value, bool element_exist_left,bool element_exist_right) {
     struct Results results;
     if (expr->operator_type == OPERATOR_PLUS) {
-      // printf("REAL ADDING OPERATION\n");
       double sum = left_value + right_value;
       results.operation_result.d = sum;
       results.result_types = Result_Types_REAL;
@@ -600,7 +586,6 @@ static struct Results real_binary_expression(struct STMT* stmt,struct EXPR* expr
 static struct Results string_binary_expression(struct STMT* stmt,struct EXPR* expr, char* left_value, char* right_value, bool element_exist_left,bool element_exist_right) {
     struct Results results;
     if (expr->operator_type == OPERATOR_PLUS) {
-      // printf("STRING ADDING OPERATION\n");
       int string_lengths = strlen(left_value) +  strlen(right_value) + 1; // extra one for null zero
       char* new_word = (char*) malloc(string_lengths * sizeof(char));
 
@@ -710,12 +695,10 @@ static struct Results execute_binary_expression(struct EXPR* expr, struct RAM* m
   bool element_exist_right = right.exist;
 
   if (left.operand_Types == Operand_Types_INT && right.operand_Types == Operand_Types_INT) {
-    printf("INT OPERATION\n");
     return integer_binary_expression(stmt, expr, left.operand_value.i, right.operand_value.i,element_exist_left,element_exist_right); // if both are integer, perform integer operation
   }
 
   else if (left.operand_Types == Operand_Types_REAL || right.operand_Types == Operand_Types_REAL) { // if either is a real number, then perform real operation
-    printf("REAL OPERATION\n");
     if (left.operand_Types == Operand_Types_INT) { // if left is integer, access it and convert to real
       double left_double = left.operand_value.i;
       return real_binary_expression(stmt, expr, left_double, right.operand_value.d,element_exist_left,element_exist_right);
@@ -725,7 +708,6 @@ static struct Results execute_binary_expression(struct EXPR* expr, struct RAM* m
       return real_binary_expression(stmt, expr, left.operand_value.d, right_double,element_exist_left, element_exist_right);
     }
     else { // if both is real, then simply plug in
-    printf("BOTH REAL\n");
     return real_binary_expression(stmt, expr, left.operand_value.d, right.operand_value.d,element_exist_left,element_exist_right);
   }
   }
@@ -766,12 +748,46 @@ static bool Pointer_Helper(struct STMT* stmt, struct RAM* memory,char* identifie
       ram_free_value(Value_Address);
       return true;  
 }
+//
+// Put the assignment value into the memory. Helper function for execute_assignment
+//
+static bool Putting_Value(struct STMT* stmt, struct RAM* memory, char* identifier, void* result, int RAM_TYPE) {
+      // Create value 
+        struct RAM_VALUE value;
+      if  (RAM_TYPE == RAM_TYPE_INT) { // if int, cast into int
+        value.value_type = RAM_TYPE;
+        int int_result = *((int*) result ); 
+        value.types.i = int_result;  }
+
+      else if  (RAM_TYPE == RAM_TYPE_REAL) { // if real, cat into real
+        value.value_type = RAM_TYPE;
+        double real_result = *((double*) result ); 
+        value.types.d = real_result;}
+
+      else if  (RAM_TYPE == RAM_TYPE_STR) { // If string, cast into string
+        value.value_type = RAM_TYPE;
+        char* string_result = *((char**) result ); 
+        value.types.s = string_result;}
+
+      else if  (RAM_TYPE == RAM_TYPE_BOOLEAN) { // If bool, cast into int
+        value.value_type = RAM_TYPE;
+        int bool_result = *((int*) result );
+        value.types.i = bool_result;}
+
+      // if a pointer, write into address of the given pointer 
+      if (stmt->types.assignment->isPtrDeref == true) {
+        return Pointer_Helper(stmt, memory,identifier,value);
+      }
+      else {
+        // Else, write into memory given the identifier
+        ram_write_cell_by_name(memory,value,identifier);}
+        return true;
+}
 
 //
 // Execute assignment for string, real, and string. Also allow for variable assigment. An assignment with no expression result in error
 //
 static bool execute_assignment(struct STMT* stmt, struct RAM* memory) {
-  printf("execute_assignment");
   char* identifier = stmt->types.assignment->var_name;   // Get var name
 
   if (stmt->types.assignment->rhs == NULL){ // if rhs don't exist, error
@@ -780,151 +796,54 @@ static bool execute_assignment(struct STMT* stmt, struct RAM* memory) {
 }
   // Check if expression 
   if (stmt->types.assignment->rhs->value_type == VALUE_EXPR) { // If it is an expression
-      printf("IS EXPRESSION");
 
     if (stmt->types.assignment->rhs->types.expr->lhs->element->element_type == ELEMENT_INT_LITERAL && stmt->types.assignment->rhs->types.expr->isBinaryExpr == false) { // check if it is uniteral integer expression
-
-      int number = atoi(stmt->types.assignment->rhs->types.expr->lhs->element->element_value); // Access integer string and turn it into integer
-      
-      // Create value 
-      struct RAM_VALUE value;
-      value.value_type = RAM_TYPE_INT;
-      value.types.i = number;  
-
-      // if a pointer, write into address of the given pointer 
-      if (stmt->types.assignment->isPtrDeref == true) {
-        return Pointer_Helper(stmt, memory,identifier,value);
-      }
-      else {
-        // Write into memory
-        ram_write_cell_by_name(memory,value,identifier);}
-        return true;
-
-
-    }
+      int number = atoi(stmt->types.assignment->rhs->types.expr->lhs->element->element_value); // Access integer string and turn it into integer      
+      return Putting_Value(stmt,memory,identifier,&number,RAM_TYPE_INT);}
 
     else if (stmt->types.assignment->rhs->types.expr->lhs->element->element_type == ELEMENT_REAL_LITERAL && stmt->types.assignment->rhs->types.expr->isBinaryExpr == false) { // check if it is uniteral real expression
       double floating = atof(stmt->types.assignment->rhs->types.expr->lhs->element->element_value); // Access REAL string and turn it into float
-      
-      // Create value 
-      struct RAM_VALUE value;
-      value.value_type = RAM_TYPE_REAL;
-      value.types.d = floating;  
-
-      // if a pointer, write into address of the given pointer 
-      if (stmt->types.assignment->isPtrDeref == true) {
-        return Pointer_Helper(stmt, memory,identifier,value);
-      }  
-      else {// Write into memory
-        ram_write_cell_by_name(memory,value,identifier);
-      return true;}
-    }
+      return Putting_Value(stmt,memory,identifier,&floating,RAM_TYPE_REAL);}
 
     else if (stmt->types.assignment->rhs->types.expr->lhs->element->element_type == ELEMENT_STR_LITERAL && stmt->types.assignment->rhs->types.expr->isBinaryExpr == false) { // check if it is uniteral string expression
       char* strings_literal = stmt->types.assignment->rhs->types.expr->lhs->element->element_value; // Access string 
-        // Create value 
-        struct RAM_VALUE value;
-        value.value_type = RAM_TYPE_STR;
-        value.types.s = strings_literal;  
+      return Putting_Value(stmt,memory,identifier,&strings_literal,RAM_TYPE_STR);}
 
-      // if a pointer, write into address of the given pointer 
-      if (stmt->types.assignment->isPtrDeref == true) {
-        return Pointer_Helper(stmt, memory,identifier,value);
-      }  
-      else {      
-        // Write into memory
-        ram_write_cell_by_name(memory,value,identifier);
-      return true;}
-    }
-    else if (stmt->types.assignment->rhs->types.expr->lhs->element->element_type == ELEMENT_TRUE && stmt->types.assignment->rhs->types.expr->isBinaryExpr == false) { // check if it is uniteral string expression
-      // Create value 
-        struct RAM_VALUE value;
-        value.value_type = RAM_TYPE_BOOLEAN;
-        value.types.i = 1;
+    else if (stmt->types.assignment->rhs->types.expr->lhs->element->element_type == ELEMENT_TRUE && stmt->types.assignment->rhs->types.expr->isBinaryExpr == false) { // check if it is uniteral string expression and True boolean
+      int true_value = 1;  
+      return Putting_Value(stmt,memory,identifier,&true_value,RAM_TYPE_BOOLEAN);}
 
-      // if a pointer, write into address of the given pointer  (MUST UPDATE POint_Helper for Boolean)
-      if (stmt->types.assignment->isPtrDeref == true) {
-        return Pointer_Helper(stmt, memory,identifier,value);
-      }  
-      else {      
-        // Write into memory
-        ram_write_cell_by_name(memory,value,identifier);
-      return true;}
-    }
-    else if ( stmt->types.assignment->rhs->types.expr->lhs->element->element_type == ELEMENT_FALSE && stmt->types.assignment->rhs->types.expr->isBinaryExpr == false) { // check if it is uniteral string expression
-      // Create value 
-      struct RAM_VALUE value;
-      value.value_type = RAM_TYPE_BOOLEAN;
-      value.types.i = 0; 
+    else if ( stmt->types.assignment->rhs->types.expr->lhs->element->element_type == ELEMENT_FALSE && stmt->types.assignment->rhs->types.expr->isBinaryExpr == false) { // check if it is uniteral string expression and false boolean
+      int false_value = 0;  
+      return Putting_Value(stmt,memory,identifier,&false_value,RAM_TYPE_BOOLEAN);}
 
-      // if a pointer, write into address of the given pointer  (MUST UPDATE POint_Helper for Boolean)
-      if (stmt->types.assignment->isPtrDeref == true) {
-        return Pointer_Helper(stmt, memory,identifier,value);
-      }  
-      else {      
-        // Write into memory
-        ram_write_cell_by_name(memory,value,identifier);
-      return true;}
-    }    
     else if (stmt->types.assignment->rhs->types.expr->lhs->element->element_type == ELEMENT_IDENTIFIER && stmt->types.assignment->rhs->types.expr->isBinaryExpr == false) { // check if it is uniteral identifier expression
       char* name = stmt->types.assignment->rhs->types.expr->lhs->element->element_value;
       struct RAM_VALUE* COPY_VALUE = ram_read_cell_by_name(memory,name);
 
       if (COPY_VALUE != NULL) { // If it does exist, access the value
+
         if (COPY_VALUE->value_type == RAM_TYPE_STR) { // check if string
-          // Pass value to RAM_VALUE
-          struct RAM_VALUE value;
-          value.value_type = COPY_VALUE->value_type;
-          value.types.s = COPY_VALUE->types.s; 
+          char* string_value  = COPY_VALUE->types.s; 
+          return Putting_Value(stmt,memory,identifier,&string_value,RAM_TYPE_STR);}
 
-          // if a pointer, 
-          if (stmt->types.assignment->isPtrDeref == true) {
-            return Pointer_Helper(stmt, memory,identifier,value);
-          }  
-          else {
-            ram_write_cell_by_name(memory,value,identifier);
-            ram_free_value(COPY_VALUE); 
-            return true; 
-          } // Update value
-        }
-
-        else if (COPY_VALUE->value_type == RAM_TYPE_INT ){ // check if integer
-          // Pass value to RAM_VALUE
-          struct RAM_VALUE value;
-          value.value_type = COPY_VALUE->value_type;
-          value.types.i = COPY_VALUE->types.i;
-
-          // if a pointer, write into address of the given pointer 
-          if (stmt->types.assignment->isPtrDeref == true) {
-            return Pointer_Helper(stmt, memory,identifier,value);
-          }  
-          else {
-            ram_write_cell_by_name(memory,value,identifier);} // Update value
-            ram_free_value(COPY_VALUE); 
-            return true; 
-        }    
+        else if (COPY_VALUE->value_type == RAM_TYPE_INT ){ // check if INT
+          int int_value  = COPY_VALUE->types.i; 
+          return Putting_Value(stmt,memory,identifier,&int_value,RAM_TYPE_INT);}
 
         else if (COPY_VALUE->value_type == RAM_TYPE_REAL) { // check if REAL
-          // Pass value to RAM_VALUE
-          struct RAM_VALUE value;
-          value.value_type = COPY_VALUE->value_type;
-          value.types.d = COPY_VALUE->types.d; 
+          double real_value  = COPY_VALUE->types.d; 
+          return Putting_Value(stmt,memory,identifier,&real_value,RAM_TYPE_REAL);}
 
-          if (stmt->types.assignment->isPtrDeref == true) {
-            return Pointer_Helper(stmt, memory,identifier,value);
-          }  
-          else {
-          ram_write_cell_by_name(memory,value,identifier);}// Update value 
-          ram_free_value(COPY_VALUE); 
-          return true;    
-        }
+        else if (COPY_VALUE->value_type == RAM_TYPE_BOOLEAN) { // check if BOOL
+          int bool_value  = COPY_VALUE->types.i; 
+          return Putting_Value(stmt,memory,identifier,&bool_value,RAM_TYPE_BOOLEAN);}        
       }
       else {
       printf("**SEMANTIC ERROR: name '%s' is not defined (line %d)\n", name, stmt->line);
       ram_free_value(COPY_VALUE); 
       return false;   
       }
-
     }
     else if (stmt->types.assignment->rhs->types.expr->isBinaryExpr == true) {
     struct Results results = execute_binary_expression(stmt->types.assignment->rhs->types.expr, memory, stmt);
@@ -933,32 +852,23 @@ static bool execute_assignment(struct STMT* stmt, struct RAM* memory) {
           struct RAM_VALUE value;
           // Check what type of value it is and update accordingly
           if (results.result_types == Result_Types_INT) { 
-          value.value_type = RAM_TYPE_INT;  // Create value
-          value.types.i = results.operation_result.i;}
+            int int_value  = results.operation_result.i; 
+            return Putting_Value(stmt,memory,identifier,&int_value,RAM_TYPE_INT);     }
 
           else if (results.result_types == Result_Types_REAL) {
-          value.value_type = RAM_TYPE_REAL;  // Create value
-          value.types.d = results.operation_result.d;}
+            double real_value  = results.operation_result.d; 
+            return Putting_Value(stmt,memory,identifier,&real_value,RAM_TYPE_REAL); }
 
           else if (results.result_types == Result_Types_STR) {
-          value.value_type = RAM_TYPE_STR;  // Create value
-          value.types.s = results.operation_result.s;
-        }
-        else if (results.result_types == Result_Types_BOOL) {
-          value.value_type = RAM_TYPE_BOOLEAN;  // Create value
-          value.types.i = results.operation_result.i;
-        }
-          if (stmt->types.assignment->isPtrDeref == true) {
-            return Pointer_Helper(stmt, memory,identifier,value);
-          }
-          else {
-            // Write into memory
-            ram_write_cell_by_name(memory,value,identifier);
-          return true;}
+            char* string_value  = results.operation_result.s; 
+            return Putting_Value(stmt,memory,identifier,&string_value,RAM_TYPE_STR);  }
+
+          else if (results.result_types == Result_Types_BOOL) {
+            int bool_value  = results.operation_result.i; 
+            return Putting_Value(stmt,memory,identifier,&bool_value, RAM_TYPE_BOOLEAN); }
       }
       else { // Error
-        return false;
-      }
+        return false;}
     }
   } 
   return false;
@@ -976,9 +886,9 @@ static bool execute_assignment(struct STMT* stmt, struct RAM* memory) {
 // the caller takes ownership of the copy and must
 // eventually free this memory via ram_free_value().
 //
-static struct RAM_VALUE* execute_expr(struct STMT* stmt, struct RAM* memory, struct EXPR* expr){
+// static struct RAM_VALUE* execute_expr(struct STMT* stmt, struct RAM* memory, struct EXPR* expr){
 
-}
+// }
 
 
 //
@@ -1000,27 +910,25 @@ void execute(struct STMT* program, struct RAM* memory)
 
   while (stmt != NULL ) { // traverse through the program statements
     if (stmt->stmt_type == STMT_ASSIGNMENT) {
-      printf("is an assignment\n");
       bool result;
       if (stmt->types.assignment->rhs->value_type == VALUE_FUNCTION_CALL){ // if it is a function call
-        printf("is an assignment & function call\n");
         char* identifier = stmt->types.assignment->var_name;   // Get var name
         result = assignment_N_function_call(stmt, stmt->types.assignment->rhs->types.function_call,memory,identifier);}
       else {
         result = execute_assignment(stmt,memory);}
       if (result == false) {
-        printf("IF\n");
         break;
       }
-      printf("AFTER\n");
       stmt = stmt->types.assignment->next_stmt; // advance
     } // if
 
     else if (stmt->stmt_type == STMT_FUNCTION_CALL) {
       bool result = execute_function_call(stmt, memory);
       if (result == false) {
+
         break;
       }
+
       stmt = stmt->types.function_call->next_stmt; // advance
   
     } // else if
