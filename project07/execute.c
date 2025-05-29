@@ -791,14 +791,16 @@ static bool execute_assignment(struct STMT* stmt, struct RAM* memory) {
       value.value_type = RAM_TYPE_INT;
       value.types.i = number;  
 
-    // if a pointer, write into address of the given pointer 
-    if (stmt->types.assignment->isPtrDeref == true) {
-      return Pointer_Helper(stmt, memory,identifier,value);
-    }
-    else {
-      // Write into memory
-      ram_write_cell_by_name(memory,value,identifier);}
-      return true;
+      // if a pointer, write into address of the given pointer 
+      if (stmt->types.assignment->isPtrDeref == true) {
+        return Pointer_Helper(stmt, memory,identifier,value);
+      }
+      else {
+        // Write into memory
+        ram_write_cell_by_name(memory,value,identifier);}
+        return true;
+
+
     }
 
     else if (stmt->types.assignment->rhs->types.expr->lhs->element->element_type == ELEMENT_REAL_LITERAL && stmt->types.assignment->rhs->types.expr->isBinaryExpr == false) { // check if it is uniteral real expression
@@ -962,6 +964,22 @@ static bool execute_assignment(struct STMT* stmt, struct RAM* memory) {
   return false;
 }
 
+// execute_expr
+//
+// Given an expression such as x * y or a > b, executes
+// the expression and returns the result as a RAM_VALUE.
+// If the execution fails with a semantic error, an
+// error message is output and NULL is returned.
+//
+// NOTE: this function allocates memory for the value that
+// is returned. This implies if the return value != NULL, 
+// the caller takes ownership of the copy and must
+// eventually free this memory via ram_free_value().
+//
+static struct RAM_VALUE* execute_expr(struct STMT* stmt, struct RAM* memory, struct EXPR* expr){
+
+}
+
 
 //
 // Public functions:
@@ -1007,11 +1025,23 @@ void execute(struct STMT* program, struct RAM* memory)
   
     } // else if
 
-    else {
-      assert(stmt->stmt_type == STMT_PASS); 
+    else if ((stmt->stmt_type == STMT_PASS))  {
+      // assert(stmt->stmt_type == STMT_PASS); 
       stmt = stmt->types.pass->next_stmt; // advance
 
     } // else
 
+    else if (stmt->stmt_type == STMT_IF_THEN_ELSE) {
+      // if result is true, go to true math
+
+      // else, go to false path
+
+    } // else
+
+    else { // while statement
+    // if result is true, go back to the beginning og while
+
+    // else, go to the next stament
+    }
   } // while
 }
