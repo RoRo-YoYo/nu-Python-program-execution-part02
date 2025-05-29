@@ -106,38 +106,6 @@ static bool execute_function_call(struct STMT* stmt, struct RAM* memory) {
       }
     }
   }
-  else if (input_comparison == 0) {
-    struct RAM_VALUE* VALUE = ram_read_cell_by_name(memory,parameter_value); // access the value
-    if (VALUE != NULL) { // If variable does exist, access the variable (ASSUMED TO BE ALWAYS RAM_TYPE_STR)
-        int integer = atoi(VALUE->types.s);
-        ram_free_value(VALUE); 
-        if (integer == 0 ) { // if fail
-          return false;
-        }
-        else {
-          return true;}}
-    else {
-      printf("**SEMANTIC ERROR: name '%s' is not defined (line %d)\n", parameter_value, stmt->line);
-      return false;}
-    } 
-  else if (float_comparison == 0) {
-    struct RAM_VALUE* VALUE = ram_read_cell_by_name(memory,parameter_value); // access the value
-    if (VALUE != NULL) { // If variable does exist, access the variable (ASSUMED TO BE ALWAYS RAM_TYPE_STR)
-        double floating = atoi(VALUE->types.s);
-        ram_free_value(VALUE); 
-        if (floating == 0 ) { // if fail
-          return false;
-        }
-        else {
-          struct RAM_VALUE NEW_VALUE; // store value
-          NEW_VALUE.value_type = RAM_TYPE_REAL;
-          NEW_VALUE.types.d = floating;
-          ram_write_cell_by_name(memory,NEW_VALUE,parameter_value);
-          return true;}}
-    else {
-      printf("**SEMANTIC ERROR: name '%s' is not defined (line %d)\n", parameter_value, stmt->line);
-      return false;}
-    } 
   return false;
 } 
 
@@ -157,10 +125,31 @@ static bool assignment_N_function_call(struct STMT* stmt, struct FUNCTION_CALL* 
   char* parameter_value = function_call->parameter->element_value; // access value
   printf("%s\n", parameter_value);
 
-  bool is_all_zero = false;
-
+  bool is_all_zero = false; // determine wether string is all zero
   int char_length = strlen(parameter_value);
 
+  if (input_comparison == 0 ){
+    char line[256];
+
+    fgets(line, sizeof(line), stdin); 
+
+    // delete EOL chars from input:
+    line[strcspn(line, "\r\n")] = '\0';
+
+    int string_length = strlen(line) + 1; // extra one for null terminator
+
+    char* copy_line = (char*) malloc(string_length * sizeof(char));
+    strcpy(copy_line, line); // copy 
+
+    struct RAM_VALUE NEW_VALUE; // store value
+    NEW_VALUE.value_type = RAM_TYPE_STR;
+    NEW_VALUE.types.s = copy_line;
+    ram_write_cell_by_name(memory,NEW_VALUE,identifier);
+
+    return true;
+    
+  }
+  else { // it's either float or int
     struct RAM_VALUE* VALUE = ram_read_cell_by_name(memory,parameter_value); // access the value (ASSUMED TO BE ALWAYS A VARIABLE)
     if (VALUE != NULL) { // If variable does exist, access the variable (ASSUMED TO BE ALWAYS RAM_TYPE_STR)
         char* variable_value = VALUE->types.s;
@@ -217,6 +206,7 @@ static bool assignment_N_function_call(struct STMT* stmt, struct FUNCTION_CALL* 
       printf("**SEMANTIC ERROR: name '%s' is not defined (line %d)\n", parameter_value, stmt->line);
       return false;}
     } 
+  }
   return false;
 }
 
