@@ -111,7 +111,7 @@ static bool assignment_N_function_call(struct STMT* stmt, struct FUNCTION_CALL* 
 
   int parameter_type = function_call->parameter->element_type; // access type
   char* parameter_value = function_call->parameter->element_value; // access value
-  printf("%s\n", parameter_value);
+  // printf("%s\n", parameter_value);
 
   bool is_all_zero = false; // determine wether string is all zero
   int char_length = strlen(parameter_value);
@@ -141,28 +141,25 @@ static bool assignment_N_function_call(struct STMT* stmt, struct FUNCTION_CALL* 
     struct RAM_VALUE* VALUE = ram_read_cell_by_name(memory,parameter_value); // access the value (ASSUMED TO BE ALWAYS A VARIABLE)
     if (VALUE != NULL) { // If variable does exist, access the variable (ASSUMED TO BE ALWAYS RAM_TYPE_STR)
         char* variable_value = VALUE->types.s;
-        printf("The value is %s\n", variable_value);
 
 
         for (int i = 0; i < char_length; i++) {
           if (variable_value[i] == '\0') { // if the end of char*, then just break
-            printf("NULL terminator\n");
             break;
           }
           if (variable_value[i] != '0') {
             is_all_zero = false;
-            printf("%i\n", i);
-            printf("%c\n", variable_value[i]);
-
-            printf("Is not all zero\n");
+            // printf("%i\n", i);
+            // printf("%c\n", variable_value[i]);
+            // printf("Is not all zero\n");
             break;
           }
           is_all_zero = true;
-          printf("Is all zero\n");
+          // printf("Is all zero\n");
         }
 
         if (int_comparison == 0) {
-          printf("is int()\n");
+          // printf("is int()\n");
           int integer = atoi(VALUE->types.s);
           ram_free_value(VALUE); 
           if (integer == 0 && is_all_zero == false) { // if fail
@@ -174,7 +171,7 @@ static bool assignment_N_function_call(struct STMT* stmt, struct FUNCTION_CALL* 
             NEW_VALUE.value_type = RAM_TYPE_INT;
             NEW_VALUE.types.i = integer;
             ram_write_cell_by_name(memory,NEW_VALUE,identifier);
-            printf("Wrote into memory\n");
+            // printf("Wrote into memory\n");
             return true;}}
 
         else if (float_comparison == 0) {
@@ -218,13 +215,17 @@ struct Operand
   } operand_value;
 
   bool exist;
+
+  bool identifier;
 };
 
 //
 // Retrieve the appropriate value given LHS or RHS. Account for if the given variable don't exist
 //
 static struct Operand retrived_value(struct UNARY_EXPR* unary_expr, struct RAM* memory) {
+  // printf("In retrived_value");
   struct Operand Operand;
+  Operand.identifier = false;
   if (unary_expr->element->element_type == ELEMENT_INT_LITERAL) {
     int number = atoi(unary_expr->element->element_value); // Access integer string and turn it into integer
     Operand.exist = true;
@@ -247,14 +248,14 @@ static struct Operand retrived_value(struct UNARY_EXPR* unary_expr, struct RAM* 
     return Operand;
   }
   else if (unary_expr->element->element_type == ELEMENT_IDENTIFIER) { // else, it's variable instead
-      char* name = unary_expr->element->element_value; // access literal string identifier
-
+      char* identifier = unary_expr->element->element_value; // access literal string identifier
+      Operand.identifier = true;
       // check if it exist, 
-      int exist = ram_get_addr(memory,name);
+      int exist = ram_get_addr(memory,identifier);
 
       if (exist != -1) { // it exist
         Operand.exist = true;
-        struct RAM_VALUE* COPY_VALUE = ram_read_cell_by_name(memory,name);
+        struct RAM_VALUE* COPY_VALUE = ram_read_cell_by_name(memory,identifier);
 
         if (COPY_VALUE->value_type == RAM_TYPE_INT) {
           Operand.operand_Types = Operand_Types_INT;
@@ -269,12 +270,11 @@ static struct Operand retrived_value(struct UNARY_EXPR* unary_expr, struct RAM* 
           return Operand;
         }
         else if (COPY_VALUE->value_type == RAM_TYPE_STR) {
-          // Operand.operand_Types = Operand_Types_STR;
+          Operand.operand_Types = Operand_Types_STR;
           int string_lengths = strlen(COPY_VALUE->types.s) + 1; // extra one for null zero
           char* copy_word = (char*) malloc(string_lengths * sizeof(char));
           strcpy(copy_word, COPY_VALUE->types.s); // copy 
 
-          Operand.operand_Types = Operand_Types_STR;
           Operand.operand_value.s = copy_word;
 
           ram_free_value(COPY_VALUE);
@@ -327,7 +327,6 @@ struct Results {
 // Check the validity of the rhs or/and lhs (If it's a variable, does it exist). And return the struct Result accordingly. Print so if it is undefined
 //
 static struct Results return_results(struct STMT* stmt,struct EXPR* expr, struct Results* results, bool element_exist_left,bool element_exist_right) {
-
   if (element_exist_left == true && element_exist_right == true) {
     results->success = true;
     return *results;
@@ -348,7 +347,7 @@ static struct Results return_results(struct STMT* stmt,struct EXPR* expr, struct
 //
 // Execute relational binary expression for real or int. Use as helper function integer_binary_expression and real_binary_expression
 //
-static struct Results num_Relational_Operation(struct EXPR* expr, double real_left_value, int real_right_value, bool is_int) {
+static struct Results num_Relational_Operation(struct EXPR* expr, double real_left_value, double real_right_value, bool is_int) {
   struct Results results;
 
   double left_value = real_left_value; // default is a float
@@ -559,10 +558,9 @@ static struct Results real_binary_expression(struct STMT* stmt,struct EXPR* expr
         return results;
       }  
     }
-
     else if (expr->operator_type ==  OPERATOR_DIV) {
       if (right_value  != 0) { //if a valid denominator, continue
-        int quotient = left_value /right_value ;
+        double quotient = left_value / right_value ;
         results.operation_result.d = quotient;
         results.result_types = Result_Types_REAL;
        return return_results(stmt, expr, &results, element_exist_left,element_exist_right);}
@@ -585,6 +583,7 @@ static struct Results real_binary_expression(struct STMT* stmt,struct EXPR* expr
 //
 static struct Results string_binary_expression(struct STMT* stmt,struct EXPR* expr, char* left_value, char* right_value, bool element_exist_left,bool element_exist_right) {
     struct Results results;
+    // printf("string_binary_expression");
     if (expr->operator_type == OPERATOR_PLUS) {
       int string_lengths = strlen(left_value) +  strlen(right_value) + 1; // extra one for null zero
       char* new_word = (char*) malloc(string_lengths * sizeof(char));
@@ -663,7 +662,7 @@ static struct Results string_binary_expression(struct STMT* stmt,struct EXPR* ex
     }  
     else if (expr->operator_type == OPERATOR_LTE) {
       int string_comparison = strcmp(left_value,right_value);
-      if (string_comparison <+ 0) {
+      if (string_comparison <= 0) {
         results.operation_result.i = 1; 
         results.result_types = Result_Types_BOOL;
         return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
@@ -674,7 +673,7 @@ static struct Results string_binary_expression(struct STMT* stmt,struct EXPR* ex
         return return_results(stmt, expr, &results, element_exist_left, element_exist_right);
       }
     }               
-    else {
+    else { 
       printf("SEMANTIC ERROR: invalid operand types (line %d)\n",stmt->line);
       results.result_types = Result_Types_INVALID;
       results.success = false;
@@ -712,15 +711,26 @@ static struct Results execute_binary_expression(struct EXPR* expr, struct RAM* m
   }
   }
   else if (left.operand_Types == Operand_Types_STR && right.operand_Types == Operand_Types_STR) { // if both are string, perform string operation
-    printf("%s\n", left.operand_value.s);
-    printf("%s\n", right.operand_value.s);
+    // printf("%s\n", left.operand_value.s);
+    // printf("%s\n", right.operand_value.s);
 
-    return string_binary_expression(stmt, expr, left.operand_value.s, right.operand_value.s,element_exist_left,element_exist_right);
+      return string_binary_expression(stmt, expr, left.operand_value.s, right.operand_value.s,element_exist_left,element_exist_right);
   }
-  printf("SEMANTIC ERROR: invalid operand types (line %d)",stmt->line);
-  results.operation_result.i = 0;
-  results.success = false;
-  return results;
+  else if (right.identifier == true || left.identifier == true) { // acoutn for non-existant string variable
+    if (left.identifier == true) {
+      printf("**SEMANTIC ERROR: name '%s' is not defined (line %d)\n", expr->lhs->element->element_value, stmt->line);}
+    else if (right.identifier == true) {
+      printf("**SEMANTIC ERROR: name '%s' is not defined (line %d)\n", expr->rhs->element->element_value, stmt->line);}
+    results.operation_result.i = 0;
+    results.success = false;
+    return results;
+  }
+  else {
+    printf("SEMANTIC ERROR: invalid operand types (line %d)\n",stmt->line);
+    results.operation_result.i = 0;
+    results.success = false;
+    return results;
+}
 }
 
 //
