@@ -191,22 +191,8 @@ static bool assignment_N_function_call(struct STMT* stmt, struct FUNCTION_CALL* 
     char* copy_line = (char*) malloc(string_length * sizeof(char));
     strcpy(copy_line, line); // copy 
 
-    // if (parameter_type == ELEMENT_INT_LITERAL) {
-    //   int int_number = atoi(copy_line); // Access integer string and turn it into integer
-    //   Putting_Value(stmt,memory,identifier,&int_number,RAM_TYPE_INT);
-    // }
-    // else if (parameter_type == ELEMENT_REAL_LITERAL) {
-    //   double real_number = atof(copy_line); // Access real string and turn it into real
-    //   Putting_Value(stmt,memory,identifier,&real_number,RAM_TYPE_REAL);
-    // }
-    // else if (parameter_type == ELEMENT_STR_LITERAL) {
     bool not_used = Putting_Value(stmt,memory,identifier,&copy_line,RAM_TYPE_STR);
-    // }
-    // else if (parameter_type == ELEMENT_BOOL_)
-    // struct RAM_VALUE NEW_VALUE; // store value
-    // NEW_VALUE.value_type = RAM_TYPE_STR;
-    // NEW_VALUE.types.s = copy_line;
-    // ram_write_cell_by_name(memory,NEW_VALUE,identifier);
+
     return true;
   
   }
@@ -218,21 +204,7 @@ static bool assignment_N_function_call(struct STMT* stmt, struct FUNCTION_CALL* 
         if (variable_value[0] == '0') {
           is_all_zero = true;
         }
-        // for (int i = 0; i < char_length; i++) {
-        //   if (variable_value[i] == '\0') { // if the end of char*, then just break
-        //     break;
-        //   }
-        //   if (variable_value[i] != '0' || variable_value[i] != '.') {
-        //     is_all_zero = false;
-        //     // printf("%i\n", i);
-        //     // printf("%c\n", variable_value[i]);
-        //     // printf("Is not all zero\n");
-        //     break;
-        //   }
-        //   is_all_zero = true;
-        //   // printf("Is all zero\n");
-        // }
-
+  
         if (int_comparison == 0) {
           int integer = atoi(VALUE->types.s);
           ram_free_value(VALUE); 
@@ -242,12 +214,6 @@ static bool assignment_N_function_call(struct STMT* stmt, struct FUNCTION_CALL* 
           }
           else {
             bool not_used = Putting_Value(stmt,memory,identifier,&integer,RAM_TYPE_INT);
-
-            // struct RAM_VALUE NEW_VALUE; // store value
-            // NEW_VALUE.value_type = RAM_TYPE_INT;
-            // NEW_VALUE.types.i = integer;
-            // ram_write_cell_by_name(memory,NEW_VALUE,identifier);
-            // printf("Wrote into memory\n");
             return true;}}
 
         else if (float_comparison == 0) {
@@ -259,10 +225,6 @@ static bool assignment_N_function_call(struct STMT* stmt, struct FUNCTION_CALL* 
             else {
             bool not_used = Putting_Value(stmt,memory,identifier,&floating,RAM_TYPE_REAL);
 
-              // struct RAM_VALUE NEW_VALUE; // store value
-              // NEW_VALUE.value_type = RAM_TYPE_REAL;
-              // NEW_VALUE.types.d = floating;
-              // ram_write_cell_by_name(memory,NEW_VALUE,identifier);
             return true;
             }
             }
@@ -918,9 +880,43 @@ static bool execute_assignment(struct STMT* stmt, struct RAM* memory) {
 // the caller takes ownership of the copy and must
 // eventually free this memory via ram_free_value().
 //
-// static struct RAM_VALUE* execute_expr(struct STMT* stmt, struct RAM* memory, struct EXPR* expr){
+static struct RAM_VALUE* execute_expr(struct STMT* stmt, struct RAM* memory, struct EXPR* expr) {
+  char* identifier = stmt->types.assignment->var_name;   // Get var name
+  struct RAM_VALUE* value = (struct RAM_VALUE*) malloc(sizeof(struct RAM_VALUE*));
+  printf("In execute_expr\n");
+; if (expr->isBinaryExpr == true) { // if a binary expression, then execute expression
+      printf("Is a binary expression\n");
+      struct Results results = execute_binary_expression(expr, memory, stmt);
 
-// }
+      if (results.success == true) { // if operation was success, put value to a Copy VALUE
+          // Check what type of value it is and update accordingly
+          if (results.result_types == Result_Types_INT) { 
+            value->types.i = results.operation_result.i;
+            value->value_type = RAM_TYPE_INT;
+          }
+          else if (results.result_types == Result_Types_REAL) {
+            value->types.d = results.operation_result.d;
+            value->value_type = RAM_TYPE_REAL;}
+
+          else if (results.result_types == Result_Types_STR) {
+            value->types.s = results.operation_result.s;
+            value->value_type = RAM_TYPE_STR;}
+
+          else if (results.result_types == Result_Types_BOOL) {
+            value->types.i = results.operation_result.i;
+            value->value_type = RAM_TYPE_BOOLEAN;}
+
+          return value;
+        }   
+      // value->value_type = RAM_TYPE_NONE;
+      // return value;           
+  }
+  printf("Not binary expression\n");
+
+  value->value_type = RAM_TYPE_BOOLEAN;
+  value->types.i = 0;
+  return value;
+}
 
 
 //
@@ -960,21 +956,23 @@ void execute(struct STMT* program, struct RAM* memory)
 
         break;
       }
-
       stmt = stmt->types.function_call->next_stmt; // advance
-  
     } // else if
 
     else if ((stmt->stmt_type == STMT_PASS))  {
-      // assert(stmt->stmt_type == STMT_PASS); 
       stmt = stmt->types.pass->next_stmt; // advance
-
     } // else
 
     else if (stmt->stmt_type == STMT_IF_THEN_ELSE) {
+      struct RAM_VALUE* Copy_RAM_VALUE = execute_expr(stmt, memory, stmt->types.if_then_else->condition);
       // if result is true, go to true math
-
+      if (Copy_RAM_VALUE->types.i == 1) {
+        stmt = stmt->types.if_then_else->true_path; // advance to true path
+      }
       // else, go to false path
+      else {
+      stmt = stmt->types.if_then_else->false_path; // advance to false path
+      }
 
     } // else
 
