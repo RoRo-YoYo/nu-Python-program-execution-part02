@@ -200,7 +200,7 @@ static bool assignment_N_function_call(struct STMT* stmt, struct FUNCTION_CALL* 
     //   Putting_Value(stmt,memory,identifier,&real_number,RAM_TYPE_REAL);
     // }
     // else if (parameter_type == ELEMENT_STR_LITERAL) {
-      Putting_Value(stmt,memory,identifier,&copy_line,RAM_TYPE_STR);
+    bool not_used = Putting_Value(stmt,memory,identifier,&copy_line,RAM_TYPE_STR);
     // }
     // else if (parameter_type == ELEMENT_BOOL_)
     // struct RAM_VALUE NEW_VALUE; // store value
@@ -241,7 +241,7 @@ static bool assignment_N_function_call(struct STMT* stmt, struct FUNCTION_CALL* 
             return false;
           }
           else {
-            Putting_Value(stmt,memory,identifier,&integer,RAM_TYPE_INT);
+            bool not_used = Putting_Value(stmt,memory,identifier,&integer,RAM_TYPE_INT);
 
             // struct RAM_VALUE NEW_VALUE; // store value
             // NEW_VALUE.value_type = RAM_TYPE_INT;
@@ -257,13 +257,13 @@ static bool assignment_N_function_call(struct STMT* stmt, struct FUNCTION_CALL* 
               printf("**SEMANTIC ERROR: invalid string for float() (line %d)\n", stmt->line);
               return false;}
             else {
-              Putting_Value(stmt,memory,identifier,&floating,RAM_TYPE_REAL);
+            bool not_used = Putting_Value(stmt,memory,identifier,&floating,RAM_TYPE_REAL);
 
               // struct RAM_VALUE NEW_VALUE; // store value
               // NEW_VALUE.value_type = RAM_TYPE_REAL;
               // NEW_VALUE.types.d = floating;
               // ram_write_cell_by_name(memory,NEW_VALUE,identifier);
-              // return true;
+            return true;
             }
             }
     else {
