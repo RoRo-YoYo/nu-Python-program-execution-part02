@@ -1,0 +1,4 @@
+this is a long string, but in reality not that long in the big scheme of things
+-123
+apple
+3.14

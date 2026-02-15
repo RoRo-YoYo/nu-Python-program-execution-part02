@@ -1,7 +1,7 @@
 /*execute.c*/
 
 //
-// << Execute a nuPython program given aporgram and a memory. Only basic straight-code (assignment, print() function call, and pass)>>
+// << Execute a nuPython program given program and a memory. assignment (both expression and function_call), function call, (print(), input(), int(), float()), pass, if_else_then,, while_loop. Support binary expression and unary element (not unary expression))>>
 //
 // << Rocelyn Young>>
 // << Northwestern University >>
